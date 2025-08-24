@@ -1,0 +1,74 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv
+
+# Development
+.env
+*.log
+*.sqlite
+*.db
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Data and logs
+data/
+logs/
+traces/
+*.json.backup
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Build
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Testing
+.tox/
+.nox/
+
+# Documentation
+docs/_build/
+site/
+
+# Docker
+*.pid
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.bak
+
+# API keys and secrets
+*.key
+*.pem
+secrets/
+
+# Model files (if storing locally)
+models/
+*.gguf
+*.bin
+
+# Ollama models
+.ollama/
+
+# OpenTelemetry
+.otel/

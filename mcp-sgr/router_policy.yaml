@@ -1,0 +1,135 @@
+# Router Policy Configuration
+# Defines rules for routing requests to different LLM backends
+
+router:
+  # Rules are evaluated in order - first match wins
+  rules:
+    # Code generation prefers specialized models
+    - when: task_type == "code_generation"
+      use: ollama
+      model: qwen2.5-coder:7b
+    
+    # Complex analysis needs larger models
+    - when: task_type == "analysis" and tokens > 2000
+      use: openrouter
+      model: meta-llama/llama-3.1-70b-instruct
+    
+    # Simple analysis can use smaller models
+    - when: task_type in ["analysis", "summarization"] and tokens < 2000
+      use: ollama
+      model: llama3.1:8b
+    
+    # Planning benefits from instruction-tuned models
+    - when: task_type == "planning"
+      use: ollama
+      model: mistral:7b-instruct
+    
+    # High-risk operations use most capable models
+    - when: risk == "high"
+      use: openrouter
+      model: anthropic/claude-3-opus
+    
+    # Large context needs models with bigger context window
+    - when: tokens > 8000
+      use: openrouter
+      model: anthropic/claude-3-haiku
+    
+    # Production environment uses stable models
+    - when: context.environment == "production"
+      use: openrouter
+      model: openai/gpt-4-turbo
+    
+    # Budget-conscious operations
+    - when: budget == "lite" and tokens < 1000
+      use: ollama
+      model: phi3:mini
+    
+    # Full budget allows best models
+    - when: budget == "full"
+      use: openrouter
+      model: openai/gpt-4
+    
+    # Default fallback
+    - when: "true"
+      use: ollama
+      model: llama3.1:8b
+
+  # Retry configuration
+  retry:
+    max_attempts: 3
+    backoff: 1.5  # Exponential backoff multiplier
+    
+  # Model-specific settings
+  models:
+    # Ollama models
+    "llama3.1:8b":
+      max_tokens: 4096
+      temperature_default: 0.1
+      
+    "qwen2.5-coder:7b":
+      max_tokens: 8192
+      temperature_default: 0.0  # Deterministic for code
+      
+    "mistral:7b-instruct":
+      max_tokens: 4096
+      temperature_default: 0.3
+      
+    "phi3:mini":
+      max_tokens: 2048
+      temperature_default: 0.1
+      
+    # OpenRouter models
+    "meta-llama/llama-3.1-70b-instruct":
+      max_tokens: 8192
+      temperature_default: 0.1
+      cost_per_1k_tokens: 0.70
+      
+    "anthropic/claude-3-opus":
+      max_tokens: 16384
+      temperature_default: 0.1
+      cost_per_1k_tokens: 15.00
+      
+    "anthropic/claude-3-haiku":
+      max_tokens: 32768
+      temperature_default: 0.1
+      cost_per_1k_tokens: 0.25
+      
+    "openai/gpt-4-turbo":
+      max_tokens: 8192
+      temperature_default: 0.1
+      cost_per_1k_tokens: 10.00
+      
+    "openai/gpt-4":
+      max_tokens: 8192
+      temperature_default: 0.1
+      cost_per_1k_tokens: 30.00
+
+# Cost optimization settings
+cost_optimization:
+  enabled: true
+  daily_budget_usd: 10.00
+  
+  # Fallback when budget exceeded
+  budget_exceeded_backend: ollama
+  budget_exceeded_model: llama3.1:8b
+  
+  # Track costs per task type
+  track_by_task_type: true
+  
+# Performance settings
+performance:
+  # Prefer local models for low latency
+  prefer_local_for_small_tasks: true
+  local_task_threshold_tokens: 500
+  
+  # Timeout settings (seconds)
+  timeouts:
+    ollama: 60
+    openrouter: 120
+    custom: 90
+    
+  # Concurrent request limits
+  max_concurrent:
+    ollama: 4
+    openrouter: 10
+    custom: 5
