@@ -50,6 +50,8 @@ class CacheManager:
         self.enabled = os.getenv("CACHE_ENABLED", "true").lower() == "true"
         self.cache_store = os.getenv("CACHE_STORE", "sqlite:///./data/cache.db")
         self.default_ttl = int(os.getenv("CACHE_TTL_SECONDS", "3600"))
+        self.max_cache_size = int(os.getenv("CACHE_MAX_SIZE_MB", "100"))  # MB
+        self.max_entries = int(os.getenv("CACHE_MAX_ENTRIES", "10000"))
         
         self.trace_enabled = os.getenv("TRACE_ENABLED", "true").lower() == "true"
         self.trace_store = os.getenv("TRACE_STORE", "sqlite:///./data/traces.db")
@@ -132,8 +134,11 @@ class CacheManager:
                 
                 return None
                 
+        except (json.JSONDecodeError, aiosqlite.Error) as e:
+            logger.error(f"Cache get error for key {key}: {e}")
+            return None
         except Exception as e:
-            logger.error(f"Cache get error: {e}")
+            logger.error(f"Unexpected cache get error: {e}", exc_info=True)
             return None
     
     async def set(
@@ -147,6 +152,9 @@ class CacheManager:
             return False
         
         try:
+            # Check cache size limits
+            await self._enforce_cache_limits()
+            
             ttl = ttl or self.default_ttl
             expires_at = datetime.utcnow() + timedelta(seconds=ttl) if ttl > 0 else None
             
@@ -160,8 +168,11 @@ class CacheManager:
             
             return True
             
+        except (json.JSONEncodeError, aiosqlite.Error) as e:
+            logger.error(f"Cache set error for key {key}: {e}")
+            return False
         except Exception as e:
-            logger.error(f"Cache set error: {e}")
+            logger.error(f"Unexpected cache set error: {e}", exc_info=True)
             return False
     
     async def delete(self, key: str) -> bool:
@@ -333,6 +344,56 @@ class CacheManager:
         except Exception as e:
             logger.error(f"Get stats error: {e}")
             return {"enabled": True, "error": str(e)}
+    
+    async def _enforce_cache_limits(self):
+        """Enforce cache size and entry limits."""
+        if not self._cache_db:
+            return
+        
+        try:
+            # Check number of entries
+            async with self._cache_db.execute("SELECT COUNT(*) FROM cache_entries") as cursor:
+                count = (await cursor.fetchone())[0]
+            
+            if count >= self.max_entries:
+                # Delete oldest entries (LRU based on hit count and created_at)
+                to_delete = count - int(self.max_entries * 0.8)  # Keep 80% after cleanup
+                await self._cache_db.execute(
+                    """DELETE FROM cache_entries 
+                       WHERE key IN (
+                           SELECT key FROM cache_entries 
+                           ORDER BY hit_count ASC, created_at ASC 
+                           LIMIT ?
+                       )""",
+                    (to_delete,)
+                )
+                await self._cache_db.commit()
+                logger.info(f"Cleaned up {to_delete} cache entries due to limit")
+            
+            # Check total size (simplified - count total length of values)
+            async with self._cache_db.execute(
+                "SELECT SUM(LENGTH(value)) FROM cache_entries"
+            ) as cursor:
+                total_size = (await cursor.fetchone())[0] or 0
+            
+            # Convert to MB (rough estimate)
+            size_mb = total_size / (1024 * 1024)
+            
+            if size_mb > self.max_cache_size:
+                # Delete oldest large entries
+                await self._cache_db.execute(
+                    """DELETE FROM cache_entries 
+                       WHERE key IN (
+                           SELECT key FROM cache_entries 
+                           ORDER BY LENGTH(value) DESC, created_at ASC 
+                           LIMIT 10
+                       )"""
+                )
+                await self._cache_db.commit()
+                logger.info(f"Cleaned up large cache entries, size was {size_mb:.1f}MB")
+                
+        except Exception as e:
+            logger.error(f"Error enforcing cache limits: {e}")
     
     async def close(self):
         """Close database connections."""

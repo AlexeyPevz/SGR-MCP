@@ -30,11 +30,9 @@ from .utils.telemetry import TelemetryManager
 # Load environment variables
 load_dotenv()
 
-# Configure logging
-logging.basicConfig(
-    level=os.getenv("LOG_LEVEL", "INFO"),
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+# Configure logging with rotation
+from .utils.logging_config import setup_logging
+setup_logging()
 logger = logging.getLogger(__name__)
 
 
@@ -295,9 +293,37 @@ router:
         await self.cache_manager.initialize()
         await self.telemetry.initialize()
         
-        # Run the server
-        async with stdio_server() as (read_stream, write_stream):
-            await self.server.run(read_stream, write_stream)
+        try:
+            # Run the server
+            async with stdio_server() as (read_stream, write_stream):
+                await self.server.run(read_stream, write_stream)
+        except KeyboardInterrupt:
+            logger.info("Received interrupt signal, shutting down gracefully...")
+        except Exception as e:
+            logger.error(f"Server error: {e}", exc_info=True)
+        finally:
+            await self.shutdown()
+    
+    async def shutdown(self):
+        """Graceful shutdown of all components."""
+        logger.info("Shutting down SGR server...")
+        
+        try:
+            # Close LLM client
+            if hasattr(self.llm_client, 'close'):
+                await self.llm_client.close()
+            
+            # Close cache manager
+            if self.cache_manager:
+                await self.cache_manager.close()
+            
+            # Close telemetry
+            if self.telemetry:
+                await self.telemetry.close()
+            
+            logger.info("Shutdown complete")
+        except Exception as e:
+            logger.error(f"Error during shutdown: {e}", exc_info=True)
 
 
 async def main():

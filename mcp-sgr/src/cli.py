@@ -41,9 +41,8 @@ def server(stdio: bool, http: bool, port: int):
         asyncio.run(SGRServer().run())
     elif http:
         click.echo(f"Starting MCP-SGR HTTP server on port {port}...")
-        # HTTP server would be implemented here
-        click.echo("HTTP facade not yet implemented. Use stdio mode.")
-        sys.exit(1)
+        from .http_server import run_http_server
+        run_http_server(port=port)
 
 
 @cli.command()

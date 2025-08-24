@@ -1,6 +1,7 @@
 """Model router for intelligent backend selection."""
 
 import os
+import ast
 import yaml
 import logging
 from typing import Any, Dict, List, Optional, Union
@@ -54,7 +55,7 @@ class RoutingRule:
                 parts = self.condition.split(" in ")
                 if len(parts) == 2:
                     field = parts[0].strip()
-                    values = eval(parts[1].strip())  # Unsafe - use ast.literal_eval in production
+                    values = ast.literal_eval(parts[1].strip())
                     
                     current = context
                     for part in field.split("."):
@@ -92,8 +93,11 @@ class RoutingRule:
             
             return False
             
-        except Exception as e:
+        except (ValueError, TypeError, SyntaxError) as e:
             logger.error(f"Error evaluating rule condition '{self.condition}': {e}")
+            return False
+        except Exception as e:
+            logger.error(f"Unexpected error in rule evaluation: {e}", exc_info=True)
             return False
 
 
