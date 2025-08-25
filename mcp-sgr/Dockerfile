@@ -17,11 +17,19 @@ LABEL maintainer="MCP-SGR Team <team@mcp-sgr.dev>"
 ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1
 
+# Create non-root user
+RUN useradd -ms /bin/bash appuser
+
 WORKDIR /app
 
 COPY --from=builder /wheels /wheels
-RUN pip install --no-cache --no-index --find-links /wheels mcp-sgr
+RUN pip install --no-cache --no-index --find-links /wheels mcp-sgr \
+ && rm -rf /wheels
 
-COPY mcp-sgr /app/mcp-sgr
+# Ensure data/log directories exist and are writable
+RUN mkdir -p /app/data /app/logs \
+ && chown -R appuser:appuser /app
+
+USER appuser
 
 ENTRYPOINT ["mcp-sgr"]

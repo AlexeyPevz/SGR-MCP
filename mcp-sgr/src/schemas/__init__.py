@@ -8,6 +8,7 @@ from .code import CodeGenerationSchema
 from .decision import DecisionSchema
 from .planning import PlanningSchema
 from .summary import SummarizationSchema
+from .rag import RAGAnalysisSchema, RAGValidationSchema
 
 SCHEMA_REGISTRY: Dict[str, Type[BaseSchema]] = {
     "analysis": AnalysisSchema,
@@ -15,6 +16,8 @@ SCHEMA_REGISTRY: Dict[str, Type[BaseSchema]] = {
     "decision": DecisionSchema,
     "code_generation": CodeGenerationSchema,
     "summarization": SummarizationSchema,
+    "rag_analysis": RAGAnalysisSchema,
+    "rag_validation": RAGValidationSchema,
 }
 
 __all__ = [
@@ -26,5 +29,7 @@ __all__ = [
     "DecisionSchema",
     "CodeGenerationSchema",
     "SummarizationSchema",
+    "RAGAnalysisSchema",
+    "RAGValidationSchema",
     "SCHEMA_REGISTRY",
 ]

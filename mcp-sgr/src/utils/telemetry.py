@@ -238,6 +238,7 @@ class TelemetryManager:
                 self._counters = {}
                 self._histograms = {}
                 self._gauges = {}
+                self._last_gauge_values = {}
             
             # Determine metric type and record
             if name.endswith("_total") or name.endswith("_count"):
@@ -268,7 +269,10 @@ class TelemetryManager:
                         description=f"Gauge for {name}",
                         unit=unit
                     )
-                self._gauges[name].add(value - self._last_gauge_values.get(name, 0), labels)
+                previous = self._last_gauge_values.get(name, 0)
+                delta = value - previous
+                if delta != 0:
+                    self._gauges[name].add(delta, labels)
                 self._last_gauge_values[name] = value
                 
         except ImportError:

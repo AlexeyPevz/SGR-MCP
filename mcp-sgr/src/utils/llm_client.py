@@ -43,6 +43,8 @@ class LLMClient:
 
         # Request session
         self._session = None
+        # Timeouts
+        self.request_timeout_seconds = float(os.getenv("LLM_REQUEST_TIMEOUT_SECONDS", "120"))
 
     def _parse_backends(self) -> List[LLMBackend]:
         """Parse enabled backends from environment."""
@@ -142,7 +144,7 @@ class LLMClient:
             async with session.post(
                 f"{self.ollama_host}/api/chat",
                 json=payload,
-                timeout=aiohttp.ClientTimeout(total=120),
+                timeout=aiohttp.ClientTimeout(total=self.request_timeout_seconds),
             ) as response:
                 if response.status == 200:
                     data = await response.json()
@@ -201,7 +203,7 @@ class LLMClient:
                 "https://openrouter.ai/api/v1/chat/completions",
                 headers=headers,
                 json=payload,
-                timeout=aiohttp.ClientTimeout(total=120),
+                timeout=aiohttp.ClientTimeout(total=self.request_timeout_seconds),
             ) as response:
                 if response.status == 200:
                     data = await response.json()
@@ -247,7 +249,7 @@ class LLMClient:
 
         try:
             async with session.post(
-                self.custom_url, json=payload, timeout=aiohttp.ClientTimeout(total=120)
+                self.custom_url, json=payload, timeout=aiohttp.ClientTimeout(total=self.request_timeout_seconds)
             ) as response:
                 if response.status == 200:
                     data = await response.json()
