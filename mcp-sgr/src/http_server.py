@@ -71,7 +71,7 @@ class EnhancePromptRequest(BaseModel):
 
 
 class LearnSchemaRequest(BaseModel):
-    examples: list = Field(..., description="Example inputs and expected reasoning", min_items=3)
+    examples: List[Dict[str, Any]] = Field(..., description="Example inputs and expected reasoning", min_length=3)
     task_type: str = Field(..., description="Name for the new schema/task type")
     description: Optional[str] = Field(default=None, description="Description of the schema")
 
