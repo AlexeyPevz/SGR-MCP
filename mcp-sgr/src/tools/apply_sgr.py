@@ -1,13 +1,12 @@
 """Apply SGR tool implementation."""
 
-import asyncio
 import json
 import logging
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from ..schemas import SCHEMA_REGISTRY
-from ..schemas.base import BudgetDepth, BaseSchema
+from ..schemas.base import BaseSchema
 from ..schemas.custom import CustomSchema
 from ..utils.cache import CacheManager
 from ..utils.llm_client import LLMClient

@@ -134,6 +134,7 @@ class CodeGenerationSchema(BaseSchema):
                     ],
                     "code_snippets": {
                         "decorator_example": "@rate_limit(calls=100, period=60)",
+                        # noqa: E501
                         "middleware_setup": "app.add_middleware(RateLimitMiddleware, backend=redis_backend)",
                     },
                 },

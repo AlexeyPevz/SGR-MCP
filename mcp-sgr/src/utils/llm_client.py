@@ -5,7 +5,7 @@ import json
 import logging
 import os
 from enum import Enum
-from typing import Any, Dict, List, Optional, Union
+from typing import List, Optional, Union
 
 import aiohttp
 from tenacity import retry, stop_after_attempt, wait_exponential
@@ -249,7 +249,9 @@ class LLMClient:
 
         try:
             async with session.post(
-                self.custom_url, json=payload, timeout=aiohttp.ClientTimeout(total=self.request_timeout_seconds)
+                self.custom_url,
+                json=payload,
+                timeout=aiohttp.ClientTimeout(total=self.request_timeout_seconds),
             ) as response:
                 if response.status == 200:
                     data = await response.json()

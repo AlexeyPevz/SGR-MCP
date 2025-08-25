@@ -4,7 +4,6 @@ import json
 import logging
 from typing import Any, Dict, List, Optional, Tuple
 
-import jsonschema
 from jsonschema import Draft7Validator
 from pydantic import BaseModel, ValidationError
 
@@ -65,7 +64,7 @@ class SchemaValidator:
         except ValidationError as e:
             errors = []
             for error in e.errors():
-                loc = " -> ".join(str(l) for l in error["loc"])
+                loc = " -> ".join(str(loc_part) for loc_part in error["loc"])
                 errors.append(f"{loc}: {error['msg']}")
 
             return False, errors, None
