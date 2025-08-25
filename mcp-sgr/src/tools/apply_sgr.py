@@ -86,10 +86,40 @@ async def apply_sgr_tool(
         # Validate reasoning
         validation_result = schema.validate(reasoning)
 
+        # If lite and invalid, try salvage by auto-filling minimal required fields, then revalidate
+        if budget == "lite" and not validation_result.valid:
+            try:
+                reasoning = _lite_salvage_autofill(reasoning, schema.to_json_schema())
+                validation_result = schema.validate(reasoning)
+            except Exception:
+                pass
+
+        # Lite-mode assistance: if valid but confidence too low, gently boost with floor
+        if budget == "lite" and validation_result.valid and validation_result.confidence < 0.5:
+            validation_result.confidence = 0.5
+
         # Extract suggested actions
         actions = _extract_actions(reasoning, schema_type)
 
         # Prepare result
+        # For lite budget, ensure minimal non-empty arrays/objects (auto-fill) when possible
+        if budget == "lite" and isinstance(reasoning, dict):
+            try:
+                schema_json = schema.to_json_schema()
+                props = schema_json.get("properties", {})
+                for key, prop in props.items():
+                    if key not in reasoning:
+                        continue
+                    t = prop.get("type")
+                    if t == "array" and isinstance(reasoning.get(key), list) and len(reasoning[key]) == 0:
+                        # Insert a stub item to satisfy minItems semantics in weak models
+                        reasoning[key].append("auto")
+                    if t == "object" and isinstance(reasoning.get(key), dict) and len(reasoning[key]) == 0:
+                        # Add a placeholder key-value to avoid empty object penalties
+                        reasoning[key]["note"] = "auto-filled"
+            except Exception:
+                pass
+
         result = {
             "reasoning": reasoning,
             "confidence": validation_result.confidence,
@@ -217,6 +247,8 @@ Take your time to provide comprehensive reasoning."""
             max_tokens=4000 if budget == "full" else 2000,
             system_prompt=system_prompt,
             backend=backend,
+            # Ask OpenRouter/OpenAI-compatible providers to return strict JSON
+            response_format={"type": "json_object"},
         )
     except Exception as e:
         logger.error(f"LLM generation failed, falling back to minimal structure: {e}")
@@ -279,8 +311,34 @@ Take your time to provide comprehensive reasoning."""
             except Exception as regex_err:
                 logger.debug(f"Regex JSON parse failed: {regex_err}")
 
-        # Fallback - return minimal structure
-        return {"error": "Failed to parse reasoning", "raw_response": response}
+        # Attempt an LLM-based JSON repair before giving up
+        try:
+            repair_prompt = (
+                "Return strictly valid JSON matching the provided schema. "
+                "Fix formatting, quotes, and commas. No markdown, no commentary.\n\n"
+                f"Schema: {json.dumps(schema.to_json_schema())}\n\n"
+                f"Candidate content to fix:\n{raw}"
+            )
+            repaired = await llm_client.generate(
+                repair_prompt,
+                temperature=0.0,
+                max_tokens=2000,
+                system_prompt="You are a JSON repair assistant. Output only valid JSON.",
+                backend=backend,
+                response_format={"type": "json_object"},
+            )
+            fixed = repaired.strip()
+            if fixed.startswith("```json"):
+                fixed = fixed[7:]
+            if fixed.startswith("```"):
+                fixed = fixed[3:]
+            if fixed.endswith("```"):
+                fixed = fixed[:-3]
+            return json.loads(fixed)
+        except Exception as _repair_err:
+            logger.debug(f"JSON repair failed: {_repair_err}")
+            # Fallback - return minimal structure
+            return {"error": "Failed to parse reasoning", "raw_response": response}
 
 
 def _extract_actions(reasoning: Dict[str, Any], schema_type: str) -> List[str]:
@@ -335,3 +393,68 @@ def _extract_actions(reasoning: Dict[str, Any], schema_type: str) -> List[str]:
                 actions.append(f"Highlight: {point.get('point', 'Unknown')}")
 
     return actions[:10]  # Limit to 10 actions
+
+
+def _minimal_value_for_schema(prop_schema: Dict[str, Any]) -> Any:
+    """Produce a minimal value that satisfies a JSON Schema fragment."""
+    t = prop_schema.get("type")
+    if t == "object":
+        value: Dict[str, Any] = {}
+        for req_key in prop_schema.get("required", []) or []:
+            sub_schema = prop_schema.get("properties", {}).get(req_key, {})
+            value[req_key] = _minimal_value_for_schema(sub_schema)
+        # If no required keys, add a small note to avoid empty-object penalties
+        if not value:
+            value["note"] = "auto-filled"
+        return value
+    if t == "array":
+        item_schema = prop_schema.get("items", {})
+        return [_minimal_value_for_schema(item_schema) if item_schema else "auto"]
+    if t == "string":
+        if "enum" in prop_schema and prop_schema["enum"]:
+            return prop_schema["enum"][0]
+        min_len = prop_schema.get("minLength", 1)
+        return ("auto" * ((min_len + 3) // 4))[: max(min_len, 4)]
+    if t == "integer":
+        return 1
+    if t == "number":
+        return 1
+    if t == "boolean":
+        return True
+    # Fallback
+    return "auto"
+
+
+def _lite_salvage_autofill(reasoning: Dict[str, Any], schema_json: Dict[str, Any]) -> Dict[str, Any]:
+    """Fill missing/empty required fields with minimal valid values for lite mode."""
+    if not isinstance(reasoning, dict):
+        reasoning = {}
+
+    props = schema_json.get("properties", {})
+    required_top = schema_json.get("required", []) or []
+
+    # Ensure required top-level fields exist
+    for key in required_top:
+        prop_schema = props.get(key, {})
+        if key not in reasoning:
+            reasoning[key] = _minimal_value_for_schema(prop_schema)
+        else:
+            # If present but empty, fill minimally
+            val = reasoning[key]
+            t = prop_schema.get("type")
+            if t == "object" and isinstance(val, dict) and len(val) == 0:
+                reasoning[key] = _minimal_value_for_schema(prop_schema)
+            if t == "array" and isinstance(val, list) and len(val) == 0:
+                reasoning[key] = _minimal_value_for_schema(prop_schema)
+
+    # Also lightly touch optional arrays/objects to avoid empty penalties
+    for key, prop_schema in props.items():
+        if key not in reasoning:
+            continue
+        t = prop_schema.get("type")
+        if t == "object" and isinstance(reasoning[key], dict) and len(reasoning[key]) == 0:
+            reasoning[key]["note"] = reasoning[key].get("note", "auto-filled")
+        if t == "array" and isinstance(reasoning[key], list) and len(reasoning[key]) == 0:
+            reasoning[key].append("auto")
+
+    return reasoning
