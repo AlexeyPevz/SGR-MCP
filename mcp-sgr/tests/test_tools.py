@@ -1,16 +1,13 @@
 """Tests for SGR tools."""
 
-import pytest
 import asyncio
-from unittest.mock import Mock, AsyncMock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
-from src.tools import (
-    apply_sgr_tool,
-    enhance_prompt_tool,
-    wrap_agent_call_tool
-)
-from src.utils.llm_client import LLMClient
+import pytest
+
+from src.tools import apply_sgr_tool, enhance_prompt_tool, wrap_agent_call_tool
 from src.utils.cache import CacheManager
+from src.utils.llm_client import LLMClient
 from src.utils.telemetry import TelemetryManager
 
 
@@ -45,12 +42,12 @@ async def mock_telemetry():
 
 class TestApplySGRTool:
     """Test apply_sgr_tool function."""
-    
+
     @pytest.mark.asyncio
     async def test_apply_sgr_basic(self, mock_llm_client, mock_cache_manager, mock_telemetry):
         """Test basic SGR application."""
         # Mock LLM response
-        mock_llm_client.generate.return_value = '''
+        mock_llm_client.generate.return_value = """
         {
             "understanding": {
                 "task_summary": "Build a REST API",
@@ -72,75 +69,69 @@ class TestApplySGRTool:
                 }
             ]
         }
-        '''
-        
+        """
+
         result = await apply_sgr_tool(
-            arguments={
-                "task": "Build a REST API",
-                "schema_type": "analysis",
-                "budget": "lite"
-            },
+            arguments={"task": "Build a REST API", "schema_type": "analysis", "budget": "lite"},
             llm_client=mock_llm_client,
             cache_manager=mock_cache_manager,
-            telemetry=mock_telemetry
+            telemetry=mock_telemetry,
         )
-        
+
         assert "reasoning" in result
         assert "confidence" in result
         assert result["confidence"] > 0
         assert "suggested_actions" in result
         assert mock_llm_client.generate.called
-    
+
     @pytest.mark.asyncio
-    async def test_apply_sgr_with_cache_hit(self, mock_llm_client, mock_cache_manager, mock_telemetry):
+    async def test_apply_sgr_with_cache_hit(
+        self, mock_llm_client, mock_cache_manager, mock_telemetry
+    ):
         """Test SGR with cache hit."""
         cached_result = {
             "reasoning": {"cached": True},
             "confidence": 0.9,
-            "suggested_actions": ["Cached action"]
+            "suggested_actions": ["Cached action"],
         }
         mock_cache_manager.get.return_value = cached_result
-        
+
         result = await apply_sgr_tool(
-            arguments={
-                "task": "Cached task",
-                "schema_type": "analysis",
-                "budget": "lite"
-            },
+            arguments={"task": "Cached task", "schema_type": "analysis", "budget": "lite"},
             llm_client=mock_llm_client,
             cache_manager=mock_cache_manager,
-            telemetry=mock_telemetry
+            telemetry=mock_telemetry,
         )
-        
+
         assert result == cached_result
         assert not mock_llm_client.generate.called
 
 
 class TestEnhancePromptTool:
     """Test enhance_prompt_tool function."""
-    
+
     @pytest.mark.asyncio
     async def test_enhance_prompt_basic(self, mock_llm_client, mock_cache_manager):
         """Test basic prompt enhancement."""
         # Mock analysis response
-        mock_llm_client.generate.return_value = '''
+        mock_llm_client.generate.return_value = """
         {
             "intent": "Write code",
             "detected_type": "code_generation",
             "key_elements": ["function", "Python"],
             "improvements": ["Add type hints", "Include error handling"]
         }
-        '''
-        
+        """
+
         result = await enhance_prompt_tool(
             arguments={
                 "original_prompt": "Write a Python function",
-                "enhancement_level": "standard"
+                "enhancement_level": "standard",
             },
             llm_client=mock_llm_client,
-            cache_manager=mock_cache_manager
+            cache_manager=mock_cache_manager,
         )
-        
+
         assert "enhanced_prompt" in result
         assert "original_prompt" in result
         assert "metadata" in result
@@ -150,18 +141,19 @@ class TestEnhancePromptTool:
 
 class TestWrapAgentCall:
     """Test wrap_agent_call_tool function."""
-    
+
     @pytest.mark.asyncio
     async def test_wrap_agent_basic(self, mock_llm_client, mock_cache_manager, mock_telemetry):
         """Test basic agent wrapping."""
+
         # Mock agent function
         async def mock_agent(prompt: str):
             return {"response": "Generated code", "status": "success"}
-        
+
         # Mock pre-analysis
         mock_llm_client.generate.side_effect = [
             # Pre-analysis response
-            '''
+            """
             {
                 "understanding": {
                     "task_summary": "Generate code",
@@ -174,9 +166,9 @@ class TestWrapAgentCall:
                 "constraints": [],
                 "risks": []
             }
-            ''',
+            """,
             # Post-analysis response
-            '''
+            """
             {
                 "understanding": {
                     "task_summary": "Analyze response",
@@ -189,9 +181,9 @@ class TestWrapAgentCall:
                 "constraints": [],
                 "risks": []
             }
-            '''
+            """,
         ]
-        
+
         result = await wrap_agent_call_tool(
             arguments={
                 "agent_endpoint": mock_agent,
@@ -199,14 +191,14 @@ class TestWrapAgentCall:
                 "sgr_config": {
                     "schema_type": "analysis",
                     "pre_analysis": True,
-                    "post_analysis": True
-                }
+                    "post_analysis": True,
+                },
             },
             llm_client=mock_llm_client,
             cache_manager=mock_cache_manager,
-            telemetry=mock_telemetry
+            telemetry=mock_telemetry,
         )
-        
+
         assert "original_response" in result
         assert result["original_response"]["status"] == "success"
         assert "reasoning_chain" in result

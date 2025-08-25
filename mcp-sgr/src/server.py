@@ -1,30 +1,37 @@
 """MCP-SGR Server implementation."""
 
-import os
-import sys
 import asyncio
 import json
 import logging
-from typing import Any, Dict, List, Optional
+import os
+import sys
 from pathlib import Path
+from typing import Any, Dict, List, Optional
 
+from dotenv import load_dotenv
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
 from mcp.types import (
-    Tool, Resource, TextContent, ImageContent, EmbeddedResource,
-    ListResourcesResult, ReadResourceResult, ListToolsResult, CallToolResult
+    CallToolResult,
+    EmbeddedResource,
+    ImageContent,
+    ListResourcesResult,
+    ListToolsResult,
+    ReadResourceResult,
+    Resource,
+    TextContent,
+    Tool,
 )
 from pydantic import BaseModel, Field
-from dotenv import load_dotenv
 
 from .schemas import SCHEMA_REGISTRY
 from .schemas.custom import CustomSchema
 from .tools.apply_sgr import apply_sgr_tool
-from .tools.wrap_agent import wrap_agent_call_tool
 from .tools.enhance_prompt import enhance_prompt_tool
 from .tools.learn_schema import learn_schema_tool
-from .utils.llm_client import LLMClient
+from .tools.wrap_agent import wrap_agent_call_tool
 from .utils.cache import CacheManager
+from .utils.llm_client import LLMClient
 from .utils.telemetry import TelemetryManager
 
 # Load environment variables
@@ -32,25 +39,26 @@ load_dotenv()
 
 # Configure logging with rotation
 from .utils.logging_config import setup_logging
+
 setup_logging()
 logger = logging.getLogger(__name__)
 
 
 class SGRServer:
     """MCP server for Schema-Guided Reasoning."""
-    
+
     def __init__(self):
         self.server = Server("sgr-reasoning")
         self.llm_client = LLMClient()
         self.cache_manager = CacheManager()
         self.telemetry = TelemetryManager()
-        
+
         # Register handlers
         self._register_handlers()
-    
+
     def _register_handlers(self):
         """Register all MCP handlers."""
-        
+
         @self.server.list_tools()
         async def list_tools() -> ListToolsResult:
             """List available SGR tools."""
@@ -63,29 +71,38 @@ class SGRServer:
                         "properties": {
                             "task": {
                                 "type": "string",
-                                "description": "The task or problem to analyze"
+                                "description": "The task or problem to analyze",
                             },
                             "context": {
                                 "type": "object",
-                                "description": "Additional context information"
+                                "description": "Additional context information",
                             },
                             "schema_type": {
                                 "type": "string",
-                                "enum": ["auto", "analysis", "planning", "decision", "search", "code_generation", "summarization", "custom"],
-                                "default": "auto"
+                                "enum": [
+                                    "auto",
+                                    "analysis",
+                                    "planning",
+                                    "decision",
+                                    "search",
+                                    "code_generation",
+                                    "summarization",
+                                    "custom",
+                                ],
+                                "default": "auto",
                             },
                             "custom_schema": {
                                 "type": "object",
-                                "description": "Custom schema definition if schema_type is 'custom'"
+                                "description": "Custom schema definition if schema_type is 'custom'",
                             },
                             "budget": {
                                 "type": "string",
                                 "enum": ["none", "lite", "full"],
-                                "default": "lite"
-                            }
+                                "default": "lite",
+                            },
                         },
-                        "required": ["task"]
-                    }
+                        "required": ["task"],
+                    },
                 ),
                 Tool(
                     name="wrap_agent_call",
@@ -95,11 +112,11 @@ class SGRServer:
                         "properties": {
                             "agent_endpoint": {
                                 "type": "string",
-                                "description": "The endpoint or identifier of the agent"
+                                "description": "The endpoint or identifier of the agent",
                             },
                             "agent_request": {
                                 "type": "object",
-                                "description": "The request payload for the agent"
+                                "description": "The request payload for the agent",
                             },
                             "sgr_config": {
                                 "type": "object",
@@ -108,12 +125,12 @@ class SGRServer:
                                     "schema_type": {"type": "string", "default": "auto"},
                                     "budget": {"type": "string", "default": "lite"},
                                     "pre_analysis": {"type": "boolean", "default": True},
-                                    "post_analysis": {"type": "boolean", "default": True}
-                                }
-                            }
+                                    "post_analysis": {"type": "boolean", "default": True},
+                                },
+                            },
                         },
-                        "required": ["agent_endpoint", "agent_request"]
-                    }
+                        "required": ["agent_endpoint", "agent_request"],
+                    },
                 ),
                 Tool(
                     name="enhance_prompt_with_sgr",
@@ -123,20 +140,20 @@ class SGRServer:
                         "properties": {
                             "original_prompt": {
                                 "type": "string",
-                                "description": "The original simple prompt"
+                                "description": "The original simple prompt",
                             },
                             "target_model": {
                                 "type": "string",
-                                "description": "Target model identifier"
+                                "description": "Target model identifier",
                             },
                             "enhancement_level": {
                                 "type": "string",
                                 "enum": ["minimal", "standard", "comprehensive"],
-                                "default": "standard"
-                            }
+                                "default": "standard",
+                            },
                         },
-                        "required": ["original_prompt"]
-                    }
+                        "required": ["original_prompt"],
+                    },
                 ),
                 Tool(
                     name="learn_schema_from_examples",
@@ -147,66 +164,57 @@ class SGRServer:
                             "examples": {
                                 "type": "array",
                                 "description": "Example inputs and reasoning outputs",
-                                "minItems": 3
+                                "minItems": 3,
                             },
                             "task_type": {
                                 "type": "string",
-                                "description": "Name for the new schema"
-                            }
+                                "description": "Name for the new schema",
+                            },
                         },
-                        "required": ["examples", "task_type"]
-                    }
-                )
+                        "required": ["examples", "task_type"],
+                    },
+                ),
             ]
             return ListToolsResult(tools=tools)
-        
+
         @self.server.call_tool()
         async def call_tool(name: str, arguments: Dict[str, Any]) -> CallToolResult:
             """Handle tool calls."""
             logger.info(f"Tool called: {name} with arguments: {arguments}")
-            
+
             try:
                 if name == "apply_sgr":
                     result = await apply_sgr_tool(
-                        arguments, 
-                        self.llm_client, 
-                        self.cache_manager,
-                        self.telemetry
+                        arguments, self.llm_client, self.cache_manager, self.telemetry
                     )
                 elif name == "wrap_agent_call":
                     result = await wrap_agent_call_tool(
-                        arguments,
-                        self.llm_client,
-                        self.cache_manager,
-                        self.telemetry
+                        arguments, self.llm_client, self.cache_manager, self.telemetry
                     )
                 elif name == "enhance_prompt_with_sgr":
                     result = await enhance_prompt_tool(
-                        arguments,
-                        self.llm_client,
-                        self.cache_manager
+                        arguments, self.llm_client, self.cache_manager
                     )
                 elif name == "learn_schema_from_examples":
-                    result = await learn_schema_tool(
-                        arguments,
-                        self.llm_client
-                    )
+                    result = await learn_schema_tool(arguments, self.llm_client)
                 else:
                     raise ValueError(f"Unknown tool: {name}")
-                
+
                 return CallToolResult(
-                    content=[TextContent(text=json.dumps(result, indent=2))]
+                    content=[TextContent(type="text", text=json.dumps(result, indent=2))]
                 )
-                
+
             except Exception as e:
                 logger.error(f"Tool execution failed: {e}", exc_info=True)
                 return CallToolResult(
-                    content=[TextContent(text=json.dumps({
-                        "error": str(e),
-                        "type": type(e).__name__
-                    }))]
+                    content=[
+                        TextContent(
+                            type="text",
+                            text=json.dumps({"error": str(e), "type": type(e).__name__}),
+                        )
+                    ]
                 )
-        
+
         @self.server.list_resources()
         async def list_resources() -> ListResourcesResult:
             """List available resources."""
@@ -215,28 +223,28 @@ class SGRServer:
                     uri="sgr://schemas",
                     name="schema_library",
                     description="Available SGR schemas",
-                    mimeType="application/json"
+                    mimeType="application/json",
                 ),
                 Resource(
                     uri="sgr://policy",
                     name="policy",
                     description="Current routing and budget policy",
-                    mimeType="application/yaml"
+                    mimeType="application/yaml",
                 ),
                 Resource(
                     uri="sgr://traces",
                     name="traces",
                     description="Recent reasoning traces",
-                    mimeType="application/json"
-                )
+                    mimeType="application/json",
+                ),
             ]
             return ListResourcesResult(resources=resources)
-        
+
         @self.server.read_resource()
         async def read_resource(uri: str) -> ReadResourceResult:
             """Read a resource."""
             logger.info(f"Reading resource: {uri}")
-            
+
             if uri == "sgr://schemas":
                 # Return schema library
                 schemas = {}
@@ -245,14 +253,12 @@ class SGRServer:
                     schemas[name] = {
                         "description": schema.get_description(),
                         "schema": schema.to_json_schema(),
-                        "examples": schema.get_examples()
+                        "examples": schema.get_examples(),
                     }
-                
+
                 content = json.dumps(schemas, indent=2)
-                return ReadResourceResult(
-                    content=[TextContent(text=content)]
-                )
-            
+                return ReadResourceResult(contents=[TextContent(type="text", text=content)])
+
             elif uri == "sgr://policy":
                 # Return current policy
                 policy_file = Path("config/router_policy.yaml")
@@ -270,29 +276,25 @@ router:
     max_attempts: 2
     backoff: 0.8
 """
-                return ReadResourceResult(
-                    content=[TextContent(text=content)]
-                )
-            
+                return ReadResourceResult(contents=[TextContent(type="text", text=content)])
+
             elif uri == "sgr://traces":
                 # Return recent traces
                 traces = await self.cache_manager.get_recent_traces(limit=10)
                 content = json.dumps(traces, indent=2)
-                return ReadResourceResult(
-                    content=[TextContent(text=content)]
-                )
-            
+                return ReadResourceResult(contents=[TextContent(type="text", text=content)])
+
             else:
                 raise ValueError(f"Unknown resource: {uri}")
-    
+
     async def run(self):
         """Run the MCP server."""
         logger.info("Starting SGR MCP Server...")
-        
+
         # Initialize components
         await self.cache_manager.initialize()
         await self.telemetry.initialize()
-        
+
         try:
             # Run the server
             async with stdio_server() as (read_stream, write_stream):
@@ -303,24 +305,24 @@ router:
             logger.error(f"Server error: {e}", exc_info=True)
         finally:
             await self.shutdown()
-    
+
     async def shutdown(self):
         """Graceful shutdown of all components."""
         logger.info("Shutting down SGR server...")
-        
+
         try:
             # Close LLM client
-            if hasattr(self.llm_client, 'close'):
+            if hasattr(self.llm_client, "close"):
                 await self.llm_client.close()
-            
+
             # Close cache manager
             if self.cache_manager:
                 await self.cache_manager.close()
-            
+
             # Close telemetry
             if self.telemetry:
                 await self.telemetry.close()
-            
+
             logger.info("Shutdown complete")
         except Exception as e:
             logger.error(f"Error during shutdown: {e}", exc_info=True)
