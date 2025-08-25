@@ -5,7 +5,7 @@ import logging
 from collections import defaultdict
 from typing import Any, DefaultDict, Dict, List
 
-from ..schemas.custom import SchemaBuilder
+from ..schemas.builder import SchemaBuilder
 from ..utils.llm_client import LLMClient
 
 logger = logging.getLogger(__name__)
