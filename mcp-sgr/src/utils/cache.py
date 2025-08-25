@@ -224,7 +224,7 @@ class CacheManager:
             query = """SELECT id, tool_name, arguments, result, created_at, 
 						      duration_ms, metadata 
 				       FROM trace_entries"""
-            params = []
+            params: List[Any] = []
 
             if tool_name:
                 query += " WHERE tool_name = ?"
@@ -233,7 +233,7 @@ class CacheManager:
             query += " ORDER BY created_at DESC LIMIT ?"
             params.append(limit)
 
-            traces = []
+            traces: List[Dict[str, Any]] = []
             async with self._trace_db.execute(query, params) as cursor:
                 async for row in cursor:
                     traces.append(

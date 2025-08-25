@@ -42,10 +42,10 @@ async def enhance_prompt_tool(
 
         # Get appropriate schema
         schema_type = prompt_analysis["detected_type"]
-        if schema_type in SCHEMA_REGISTRY:
-            schema = SCHEMA_REGISTRY[schema_type]()
-        else:
-            schema = SCHEMA_REGISTRY["analysis"]()  # Default fallback
+        schema_factory = SCHEMA_REGISTRY.get(schema_type) or SCHEMA_REGISTRY.get("analysis")
+        if not schema_factory:
+            raise ValueError("No schema available")
+        schema = schema_factory()
 
         # Generate enhanced prompt based on level
         if enhancement_level == "minimal":

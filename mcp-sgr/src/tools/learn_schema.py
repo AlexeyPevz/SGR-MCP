@@ -3,7 +3,7 @@
 import json
 import logging
 from collections import defaultdict
-from typing import Any, Dict, List
+from typing import Any, Dict, List, DefaultDict, Set
 
 from ..schemas.custom import SchemaBuilder
 from ..utils.llm_client import LLMClient
@@ -133,14 +133,16 @@ async def _analyze_example_patterns(
             reasoning_examples.append(ex["expected_reasoning"])
 
     # Manual pattern extraction (simplified)
-    field_occurrences = defaultdict(lambda: {"count": 0, "types": set(), "values": []})
+    field_occurrences: DefaultDict[str, Dict[str, Any]] = defaultdict(
+        lambda: {"count": 0, "types": set(), "values": []}
+    )
 
     for reasoning in reasoning_examples:
         _extract_fields_recursive(reasoning, field_occurrences)
 
     # Convert to field definitions
     total_examples = len(reasoning_examples)
-    fields = []
+    fields: List[Dict[str, Any]] = []
 
     for field_name, info in field_occurrences.items():
         # Determine if required (appears in most examples)

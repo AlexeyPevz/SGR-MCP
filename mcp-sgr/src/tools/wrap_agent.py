@@ -50,7 +50,7 @@ async def wrap_agent_call_tool(
         post_analysis = sgr_config.get("post_analysis", True)
         include_alternatives = sgr_config.get("include_alternatives", False)
 
-        result = {
+        result: Dict[str, Any] = {
             "original_response": None,
             "reasoning_chain": {},
             "quality_metrics": {},
