@@ -1,0 +1,138 @@
+version: '3.8'
+
+services:
+  # MCP-SGR Server
+  mcp-sgr:
+    build: .
+    container_name: mcp-sgr
+    ports:
+      - "8080:8080"
+    environment:
+      # LLM Configuration
+      - LLM_BACKENDS=ollama,openrouter
+      - OLLAMA_HOST=http://ollama:11434
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      
+      # SGR Configuration
+      - SGR_BUDGET_DEPTH=lite
+      - SGR_PRE_ANALYSIS=auto
+      - SGR_POST_ANALYSIS=lite
+      
+      # Cache Configuration
+      - CACHE_ENABLED=true
+      - CACHE_STORE=sqlite:///app/data/cache.db
+      
+      # Trace Configuration
+      - TRACE_ENABLED=true
+      - TRACE_STORE=sqlite:///app/data/traces.db
+      
+      # HTTP Configuration
+      - HTTP_ENABLED=true
+      - HTTP_PORT=8080
+      - HTTP_HOST=0.0.0.0
+      
+      # Telemetry (optional)
+      - OTEL_ENABLED=${OTEL_ENABLED:-false}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./router_policy.yaml:/app/router_policy.yaml:ro
+    depends_on:
+      - ollama
+    restart: unless-stopped
+    networks:
+      - sgr-network
+
+  # Ollama for local LLM
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    environment:
+      - OLLAMA_KEEP_ALIVE=24h
+    restart: unless-stopped
+    networks:
+      - sgr-network
+    # Pre-pull models on startup
+    entrypoint: ["/bin/sh", "-c"]
+    command: |
+      "ollama serve & 
+       sleep 5 &&
+       ollama pull llama3.1:8b &&
+       ollama pull qwen2.5-coder:7b &&
+       ollama pull mistral:7b-instruct &&
+       ollama pull phi3:mini &&
+       wait"
+
+  # Optional: OpenTelemetry Collector
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    container_name: otel-collector
+    profiles: ["observability"]
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
+    ports:
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+      - "8888:8888"   # Prometheus metrics
+    networks:
+      - sgr-network
+
+  # Optional: Jaeger for trace visualization
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: jaeger
+    profiles: ["observability"]
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    ports:
+      - "16686:16686"  # Jaeger UI
+      - "14250:14250"  # gRPC
+    networks:
+      - sgr-network
+
+  # Optional: Redis for distributed caching
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    profiles: ["distributed"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    restart: unless-stopped
+    networks:
+      - sgr-network
+
+  # Optional: PostgreSQL for persistent storage
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres
+    profiles: ["distributed"]
+    environment:
+      - POSTGRES_DB=mcp_sgr
+      - POSTGRES_USER=sgr
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-sgr_secret}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      - sgr-network
+
+volumes:
+  ollama-data:
+  redis-data:
+  postgres-data:
+
+networks:
+  sgr-network:
+    driver: bridge

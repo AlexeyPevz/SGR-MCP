@@ -1,0 +1,111 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mcp-sgr"
+version = "0.1.0"
+description = "Universal middleware for transparent and managed LLM agent reasoning via MCP and SGR"
+authors = [{name = "MCP-SGR Team", email = "team@mcp-sgr.dev"}]
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.11"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+dependencies = [
+    "mcp>=0.1.0",
+    "pydantic>=2.0",
+    "pydantic-settings>=2.0",
+    "jsonschema>=4.0",
+    "aiohttp>=3.9",
+    "httpx>=0.25",
+    "fastapi>=0.100",
+    "uvicorn>=0.24",
+    "sqlalchemy>=2.0",
+    "aiosqlite>=0.19",
+    "redis>=5.0",
+    "opentelemetry-api>=1.20",
+    "opentelemetry-sdk>=1.20",
+    "opentelemetry-instrumentation-fastapi>=0.40b0",
+    "structlog>=23.2",
+    "python-dotenv>=1.0",
+    "click>=8.1",
+    "pyyaml>=6.0",
+    "jinja2>=3.1",
+    "tenacity>=8.2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4",
+    "pytest-asyncio>=0.21",
+    "pytest-cov>=4.1",
+    "pytest-mock>=3.11",
+    "black>=23.7",
+    "isort>=5.12",
+    "flake8>=6.1",
+    "mypy>=1.5",
+    "pre-commit>=3.3",
+]
+ollama = [
+    "ollama>=0.1.7",
+]
+langchain = [
+    "langchain>=0.1.0",
+    "langchain-community>=0.0.10",
+]
+autogen = [
+    "pyautogen>=0.2.0",
+]
+crewai = [
+    "crewai>=0.1.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/mcp-sgr/mcp-sgr"
+Documentation = "https://docs.mcp-sgr.dev"
+Repository = "https://github.com/mcp-sgr/mcp-sgr"
+Issues = "https://github.com/mcp-sgr/mcp-sgr/issues"
+
+[project.scripts]
+mcp-sgr = "src.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
+
+[tool.black]
+line-length = 100
+target-version = ['py311']
+include = '\.pyi?$'
+
+[tool.isort]
+profile = "black"
+line_length = 100
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = "-ra -q --strict-markers"
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.coverage.run]
+source = ["src"]
+omit = ["*/tests/*", "*/migrations/*"]
+
+[tool.coverage.report]
+precision = 2
+show_missing = true
+skip_covered = false

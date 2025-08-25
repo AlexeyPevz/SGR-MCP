@@ -1,0 +1,200 @@
+{
+  "name": "sgr-reasoning",
+  "version": "1.0.0",
+  "description": "Structured reasoning middleware for any agent via MCP",
+  "author": "MCP-SGR Team",
+  "license": "MIT",
+  "tools": [
+    {
+      "name": "apply_sgr",
+      "description": "Apply a structured reasoning schema to analyze and structure a task",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "task": {
+            "type": "string",
+            "description": "The task or problem to analyze"
+          },
+          "context": {
+            "type": "object",
+            "description": "Additional context information",
+            "additionalProperties": true
+          },
+          "schema_type": {
+            "type": "string",
+            "description": "Type of reasoning schema to apply",
+            "enum": ["auto", "analysis", "planning", "decision", "search", "code_generation", "summarization", "custom"],
+            "default": "auto"
+          },
+          "custom_schema": {
+            "type": "object",
+            "description": "Custom schema definition (required if schema_type is 'custom')",
+            "additionalProperties": true
+          },
+          "budget": {
+            "type": "string",
+            "enum": ["none", "lite", "full"],
+            "default": "lite",
+            "description": "Reasoning depth budget"
+          }
+        },
+        "required": ["task"]
+      }
+    },
+    {
+      "name": "wrap_agent_call",
+      "description": "Wrap any agent call with pre/post SGR analysis for enhanced reasoning",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "agent_endpoint": {
+            "type": "string",
+            "description": "The endpoint or identifier of the agent to call"
+          },
+          "agent_request": {
+            "type": "object",
+            "description": "The request payload for the agent",
+            "additionalProperties": true
+          },
+          "sgr_config": {
+            "type": "object",
+            "description": "SGR configuration for the wrapper",
+            "properties": {
+              "schema_type": {
+                "type": "string",
+                "enum": ["auto", "analysis", "planning", "decision", "search", "code_generation", "summarization"],
+                "default": "auto"
+              },
+              "budget": {
+                "type": "string",
+                "enum": ["none", "lite", "full"],
+                "default": "lite"
+              },
+              "pre_analysis": {
+                "type": "boolean",
+                "default": true,
+                "description": "Enable pre-call analysis"
+              },
+              "post_analysis": {
+                "type": "boolean",
+                "default": true,
+                "description": "Enable post-call analysis"
+              },
+              "include_alternatives": {
+                "type": "boolean",
+                "default": false,
+                "description": "Include alternative approaches in analysis"
+              }
+            }
+          }
+        },
+        "required": ["agent_endpoint", "agent_request"]
+      }
+    },
+    {
+      "name": "enhance_prompt_with_sgr",
+      "description": "Transform a simple prompt into a structured prompt with SGR guidance",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "original_prompt": {
+            "type": "string",
+            "description": "The original simple prompt"
+          },
+          "target_model": {
+            "type": "string",
+            "description": "Target model identifier (e.g., 'llama3.1:8b@ollama')"
+          },
+          "enhancement_level": {
+            "type": "string",
+            "enum": ["minimal", "standard", "comprehensive"],
+            "default": "standard",
+            "description": "Level of prompt enhancement"
+          }
+        },
+        "required": ["original_prompt"]
+      }
+    },
+    {
+      "name": "learn_schema_from_examples",
+      "description": "Learn a new SGR schema from provided examples (roadmap feature)",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "examples": {
+            "type": "array",
+            "description": "Array of example inputs and expected reasoning outputs",
+            "items": {
+              "type": "object",
+              "properties": {
+                "input": {
+                  "type": "object",
+                  "additionalProperties": true
+                },
+                "expected_reasoning": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              },
+              "required": ["input", "expected_reasoning"]
+            },
+            "minItems": 3
+          },
+          "task_type": {
+            "type": "string",
+            "description": "Name for the new schema/task type"
+          },
+          "description": {
+            "type": "string",
+            "description": "Description of what this schema is for"
+          }
+        },
+        "required": ["examples", "task_type"]
+      }
+    }
+  ],
+  "resources": [
+    {
+      "name": "schema_library",
+      "description": "Access to all available SGR schemas",
+      "uri": "sgr://schemas",
+      "mimeType": "application/json"
+    },
+    {
+      "name": "policy",
+      "description": "Current routing and budget policy configuration",
+      "uri": "sgr://policy",
+      "mimeType": "application/yaml"
+    },
+    {
+      "name": "traces",
+      "description": "Recent reasoning traces for debugging",
+      "uri": "sgr://traces",
+      "mimeType": "application/json"
+    }
+  ],
+  "prompts": [
+    {
+      "name": "debug_reasoning",
+      "description": "Debug a specific reasoning trace",
+      "arguments": [
+        {
+          "name": "trace_id",
+          "description": "ID of the trace to debug",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "suggest_schema",
+      "description": "Suggest the best schema for a given task",
+      "arguments": [
+        {
+          "name": "task_description",
+          "description": "Description of the task",
+          "required": true
+        }
+      ]
+    }
+  ]
+}
