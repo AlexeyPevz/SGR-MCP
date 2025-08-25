@@ -3,7 +3,7 @@
 import json
 import asyncio
 import aiohttp
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, List
 from datetime import datetime
 import logging
 
@@ -156,12 +156,18 @@ Provide structured analysis to understand:
 3. Expected response characteristics
 4. Risk factors"""
     
+    # Determine agent type label
+    if isinstance(agent_endpoint, str):
+        agent_type = agent_endpoint.split("/")[-1]
+    else:
+        agent_type = getattr(agent_endpoint, "__name__", "callable")
+
     # Use apply_sgr for analysis
     result = await apply_sgr_tool(
         {
             "task": task,
             "context": {
-                "agent_type": agent_endpoint.split("/")[-1],
+                "agent_type": agent_type,
                 "request_size": len(json.dumps(agent_request))
             },
             "schema_type": schema_type if schema_type != "auto" else "analysis",

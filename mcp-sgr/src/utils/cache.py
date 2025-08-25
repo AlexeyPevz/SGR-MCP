@@ -39,7 +39,9 @@ class TraceEntry(Base):
     result = Column(Text)
     created_at = Column(DateTime, default=datetime.utcnow)
     duration_ms = Column(Integer)
-    metadata = Column(Text)
+    # 'metadata' is a reserved attribute name in SQLAlchemy's Declarative API
+    # Use a different Python attribute while keeping the DB column named 'metadata'
+    metadata_json = Column("metadata", Text)
 
 
 class CacheManager:

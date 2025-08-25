@@ -187,11 +187,31 @@ Requirements for FULL analysis:
 Take your time to provide comprehensive reasoning."""
     
     # Generate reasoning
-    response = await llm_client.generate(
-        prompt,
-        temperature=0.3 if budget == "full" else 0.1,
-        max_tokens=4000 if budget == "full" else 2000
-    )
+    try:
+        response = await llm_client.generate(
+            prompt,
+            temperature=0.3 if budget == "full" else 0.1,
+            max_tokens=4000 if budget == "full" else 2000
+        )
+    except Exception as e:
+        logger.error(f"LLM generation failed, falling back to minimal structure: {e}")
+        # Fallback to minimal reasoning structure matching the schema shape
+        schema_json = schema.to_json_schema()
+        fallback: Dict[str, Any] = {}
+        props = schema_json.get("properties", {})
+        for key, prop in props.items():
+            t = prop.get("type")
+            if t == "object":
+                fallback[key] = {}
+            elif t == "array":
+                fallback[key] = []
+            elif t == "number" or t == "integer":
+                fallback[key] = 0
+            elif t == "boolean":
+                fallback[key] = False
+            else:
+                fallback[key] = ""
+        return fallback
     
     # Parse JSON response
     try:

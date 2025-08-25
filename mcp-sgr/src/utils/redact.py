@@ -2,7 +2,7 @@
 
 import re
 import logging
-from typing import Any, Dict, List, Set, Tuple
+from typing import Any, Dict, List, Set, Tuple, Optional
 from dataclasses import dataclass
 import hashlib
 
@@ -29,9 +29,17 @@ class PIIRedactor:
             replacement="[EMAIL]",
             hash_it=True
         ),
+        # Ensure credit cards are detected before generic phone patterns
+        "credit_card": RedactionPattern(
+            name="credit_card",
+            pattern=re.compile(r'\b(?:4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14}|3[47][0-9]{13}|3(?:0[0-5]|[68][0-9])[0-9]{11}|6(?:011|5[0-9]{2})[0-9]{12})\b'),
+            replacement="[CREDIT_CARD]",
+            hash_it=False
+        ),
         "phone": RedactionPattern(
             name="phone",
-            pattern=re.compile(r'\b(?:\+?1[-.\s]?)?\(?[0-9]{3}\)?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4}\b'),
+            # Broader phone pattern to catch short local formats like 555-1234 as well
+            pattern=re.compile(r'(?:\+?\d{1,3}[-.\s]?)?(?:\(\d{3}\)|\d{3})?[-.\s]?\d{3}[-.\s]?\d{4}|\b\d{3}[-.\s]?\d{4}\b'),
             replacement="[PHONE]",
             hash_it=True
         ),
@@ -39,12 +47,6 @@ class PIIRedactor:
             name="ssn",
             pattern=re.compile(r'\b\d{3}-\d{2}-\d{4}\b'),
             replacement="[SSN]",
-            hash_it=False
-        ),
-        "credit_card": RedactionPattern(
-            name="credit_card",
-            pattern=re.compile(r'\b(?:4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14}|3[47][0-9]{13}|3(?:0[0-5]|[68][0-9])[0-9]{11}|6(?:011|5[0-9]{2})[0-9]{12})\b'),
-            replacement="[CREDIT_CARD]",
             hash_it=False
         ),
         "ip_address": RedactionPattern(
