@@ -38,7 +38,7 @@ services:
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs
-      - ./router_policy.yaml:/app/router_policy.yaml:ro
+      - ./config/router_policy.yaml:/app/router_policy.yaml:ro
     depends_on:
       - ollama
     restart: unless-stopped
@@ -47,7 +47,7 @@ services:
 
   # Ollama for local LLM
   ollama:
-    image: ollama/ollama:latest
+    image: ollama/ollama:0.1.29
     container_name: ollama
     ports:
       - "11434:11434"
@@ -71,7 +71,7 @@ services:
 
   # Optional: OpenTelemetry Collector
   otel-collector:
-    image: otel/opentelemetry-collector-contrib:latest
+    image: otel/opentelemetry-collector-contrib:0.97.0
     container_name: otel-collector
     profiles: ["observability"]
     command: ["--config=/etc/otel-collector-config.yaml"]
@@ -86,7 +86,7 @@ services:
 
   # Optional: Jaeger for trace visualization
   jaeger:
-    image: jaegertracing/all-in-one:latest
+    image: jaegertracing/all-in-one:1.53
     container_name: jaeger
     profiles: ["observability"]
     environment:
@@ -99,7 +99,7 @@ services:
 
   # Optional: Redis for distributed caching
   redis:
-    image: redis:7-alpine
+    image: redis:7.2-alpine
     container_name: redis
     profiles: ["distributed"]
     ports:
@@ -113,7 +113,7 @@ services:
 
   # Optional: PostgreSQL for persistent storage
   postgres:
-    image: postgres:15-alpine
+    image: postgres:15.6-alpine
     container_name: postgres
     profiles: ["distributed"]
     environment:

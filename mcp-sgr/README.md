@@ -119,6 +119,23 @@ python examples/basic_usage.py
 python examples/agent_wrapper.py
 ```
 
+## Разработка
+
+### Настройка окружения разработчика
+
+```bash
+# Установить dev-зависимости
+pip install -e .[dev]
+
+# Установить и активировать pre-commit хуки
+pre-commit install
+
+# Проверить все хуки вручную
+pre-commit run --all-files
+```
+
+Хуки запускают `ruff`, `black` и `mypy --strict` перед каждым коммитом, что гарантирует единообразный стиль и отсутствие типовых ошибок.
+
 ## Конфигурация (ENV)
 
 ```env

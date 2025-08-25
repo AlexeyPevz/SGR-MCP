@@ -255,7 +255,7 @@ class SGRServer:
             
             elif uri == "sgr://policy":
                 # Return current policy
-                policy_file = Path("router_policy.yaml")
+                policy_file = Path("config/router_policy.yaml")
                 if policy_file.exists():
                     content = policy_file.read_text()
                 else:

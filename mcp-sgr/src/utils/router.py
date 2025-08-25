@@ -106,7 +106,7 @@ class ModelRouter:
     
     def __init__(self, policy_file: Optional[str] = None):
         """Initialize router with policy file."""
-        self.policy_file = policy_file or os.getenv("ROUTER_POLICY_FILE", "./router_policy.yaml")
+        self.policy_file = policy_file or os.getenv("ROUTER_POLICY_FILE", "./config/router_policy.yaml")
         self.default_backend = os.getenv("ROUTER_DEFAULT_BACKEND", "ollama")
         self.rules: List[RoutingRule] = []
         self.retry_config = {

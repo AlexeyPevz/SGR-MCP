@@ -20,6 +20,8 @@ from .tools import (
     enhance_prompt_tool,
     learn_schema_tool
 )
+from .utils.logging_config import setup_logging
+setup_logging()
 
 logger = logging.getLogger(__name__)
 
