@@ -3,7 +3,7 @@
 import json
 import asyncio
 from typing import Any, Dict, List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 
 from ..schemas import SCHEMA_REGISTRY
@@ -92,7 +92,7 @@ async def apply_sgr_tool(
             "metadata": {
                 "schema_type": schema_type,
                 "budget": budget,
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "validation": {
                     "valid": validation_result.valid,
                     "errors": validation_result.errors,
