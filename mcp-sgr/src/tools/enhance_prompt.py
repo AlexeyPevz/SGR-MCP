@@ -318,7 +318,7 @@ You need to provide a comprehensive, structured response following this exact sc
     # Add quality criteria
     enhanced += """Quality criteria for your response:
 1. **Completeness**: Address all required fields thoroughly
-2. **Specificity**: Provide concrete details, not generalizations  
+2. **Specificity**: Provide concrete details, not generalizations
 3. **Actionability**: Include specific next steps
 4. **Validation**: Consider edge cases and risks
 5. **Clarity**: Use clear, unambiguous language

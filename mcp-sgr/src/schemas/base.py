@@ -170,7 +170,9 @@ class BaseSchema(ABC):
             if schema_field.type == "array" and schema_field.required:
                 value = get_nested_value(data, schema_field.name)
                 if isinstance(value, list) and len(value) == 0:
-                    warnings.append(f"Field '{schema_field.name}' is empty but should contain items")
+                    warnings.append(
+                        f"Field '{schema_field.name}' is empty but should contain items"
+                    )
 
         return warnings
 

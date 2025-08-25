@@ -1,12 +1,11 @@
 """Custom schema implementation."""
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 import jsonschema
 
 from .base import BaseSchema, SchemaField, ValidationResult
-from .builder import SchemaBuilder
 
 logger = logging.getLogger(__name__)
 
