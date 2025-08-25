@@ -294,10 +294,9 @@ class CacheManager:
                 stats["total_hits"] = (await cursor.fetchone())[0] or 0
 
             # Hit rate
-            if stats["total_hits"] > 0:
-                stats["hit_rate"] = stats["total_hits"] / (
-                    stats["total_hits"] + stats["total_entries"]
-                )
+            if isinstance(stats.get("total_hits"), int) and isinstance(stats.get("total_entries"), int) and stats["total_hits"] > 0:
+                denominator = stats["total_hits"] + stats["total_entries"]
+                stats["hit_rate"] = (stats["total_hits"] / denominator) if denominator > 0 else 0.0
             else:
                 stats["hit_rate"] = 0.0
 

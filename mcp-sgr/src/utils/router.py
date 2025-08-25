@@ -33,83 +33,67 @@ class RoutingRule:
     backend: str  # Which backend to use
     model: Optional[str] = None  # Specific model override
 
+    def _resolve_field(self, context: Dict[str, Any], dotted: str) -> Any:
+        obj: Any = context
+        for part in dotted.split("."):
+            if isinstance(obj, dict) and part in obj:
+                obj = obj[part]
+            else:
+                return None
+        return obj
+
     def matches(self, context: Dict[str, Any]) -> bool:
         """Check if rule matches given context."""
         try:
-            # Simple evaluation - in production use safe eval
-            # This is a simplified version
+            # Equality check: field == "value"
             if "==" in self.condition:
-                parts = self.condition.split("==")
-                if len(parts) == 2:
-                    field = parts[0].strip()
-                    value = parts[1].strip().strip('"').strip("'")
+                left, right = self.condition.split("==", 1)
+                field = left.strip()
+                equality_value = right.strip().strip('"').strip("'")
+                current_val = self._resolve_field(context, field)
+                return str(current_val) == equality_value
 
-                    # Handle nested fields safely
-                    obj: Any = context
-                    for part in field.split("."):
-                        if isinstance(obj, dict) and part in obj:
-                            obj = obj[part]
-                        else:
-                            return False
+            # Membership check: field in [..]
+            if " in " in self.condition:
+                left, right = self.condition.split(" in ", 1)
+                field = left.strip()
+                try:
+                    membership_values = ast.literal_eval(right.strip())
+                except Exception as e:
+                    logger.error(f"Invalid membership list in condition '{self.condition}': {e}")
+                    return False
+                current_val = self._resolve_field(context, field)
+                return current_val in membership_values
 
-                    return str(obj) == value
-
-            elif " in " in self.condition:
-                parts = self.condition.split(" in ")
-                if len(parts) == 2:
-                    field = parts[0].strip()
-                    values = ast.literal_eval(parts[1].strip())
-
-                    obj: Any = context
-                    for part in field.split("."):
-                        if isinstance(obj, dict) and part in obj:
-                            obj = obj[part]
-                        else:
-                            return False
-
-                    return obj in values
-
-            elif (
-                " < " in self.condition
-                or " > " in self.condition
-                or " <= " in self.condition
-                or " >= " in self.condition
-            ):
-                # Handle numeric comparisons
-                for op in ["<", ">", "<=", ">="]:
-                    if f" {op} " in self.condition:
-                        parts = self.condition.split(f" {op} ")
-                        if len(parts) == 2:
-                            field = parts[0].strip()
-                            value = float(parts[1].strip())
-
-                            obj: Any = context
-                            for part in field.split("."):
-                                if isinstance(obj, dict) and part in obj:
-                                    obj = obj[part]
-                                else:
-                                    return False
-
-                            # Normalize to float if possible
-                            try:
-                                current_value = float(obj)  # type: ignore[arg-type]
-                            except (TypeError, ValueError):
-                                logger.error(
-                                    f"Non-numeric value for comparison in field '{field}': {obj}"
-                                )
-                                return False
-
-                            if op == "<":
-                                return current_value < value
-                            elif op == ">":
-                                return current_value > value
-                            elif op == "<=":
-                                return current_value <= value
-                            elif op == ">=":
-                                return current_value >= value
+            # Numeric comparisons
+            for op in ("<=", ">=", "<", ">"):
+                token = f" {op} "
+                if token in self.condition:
+                    left, right = self.condition.split(token, 1)
+                    field = left.strip()
+                    try:
+                        numeric_value = float(right.strip())
+                    except ValueError:
+                        logger.error(f"Right-hand side is not numeric in condition '{self.condition}'")
+                        return False
+                    current_val = self._resolve_field(context, field)
+                    try:
+                        current_num = float(current_val)  # type: ignore[arg-type]
+                    except (TypeError, ValueError):
+                        logger.error(
+                            f"Non-numeric value for comparison in field '{field}': {current_val}"
+                        )
+                        return False
+                    if op == "<":
+                        return current_num < numeric_value
+                    if op == ">":
+                        return current_num > numeric_value
+                    if op == "<=":
+                        return current_num <= numeric_value
+                    if op == ">=":
+                        return current_num >= numeric_value
 
             return False
-
         except (ValueError, TypeError, SyntaxError) as e:
             logger.error(f"Error evaluating rule condition '{self.condition}': {e}")
             return False

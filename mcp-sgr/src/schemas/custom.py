@@ -131,7 +131,7 @@ class SchemaBuilder:
         default: Any = None,
     ) -> "SchemaBuilder":
         """Add a field to the schema."""
-        prop = {"type": field_type}
+        prop: Dict[str, Any] = {"type": field_type}
 
         if description:
             prop["description"] = description
@@ -161,7 +161,7 @@ class SchemaBuilder:
         required_properties: Optional[List[str]] = None,
     ) -> "SchemaBuilder":
         """Add an object field with nested properties."""
-        prop = {"type": "object", "properties": properties}
+        prop: Dict[str, Any] = {"type": "object", "properties": properties}
 
         if required_properties:
             prop["required"] = required_properties
@@ -183,7 +183,7 @@ class SchemaBuilder:
         max_items: Optional[int] = None,
     ) -> "SchemaBuilder":
         """Add an array field."""
-        prop = {"type": "array", "items": {"type": item_type}}
+        prop: Dict[str, Any] = {"type": "array", "items": {"type": item_type}}
 
         if description:
             prop["description"] = description
