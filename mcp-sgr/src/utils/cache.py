@@ -276,7 +276,7 @@ class CacheManager:
             return {"enabled": False}
 
         try:
-            stats = {"enabled": True}
+            stats: Dict[str, Any] = {"enabled": True}
 
             # Total entries
             async with self._cache_db.execute("SELECT COUNT(*) FROM cache_entries") as cursor:

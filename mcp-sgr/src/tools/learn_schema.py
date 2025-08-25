@@ -76,7 +76,7 @@ async def learn_schema_tool(arguments: Dict[str, Any], llm_client: LLMClient) ->
         custom_schema = schema_builder.build()
 
         # Validate schema against examples
-        validation_results = []
+        validation_results: List[bool] = []
         for example in examples:
             if "expected_reasoning" in example:
                 result = custom_schema.validate(example["expected_reasoning"])

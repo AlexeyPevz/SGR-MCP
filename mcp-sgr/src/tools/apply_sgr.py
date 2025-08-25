@@ -69,10 +69,11 @@ async def apply_sgr_tool(
         # Get or create schema
         if schema_type == "custom" and custom_schema_def:
             schema = CustomSchema(custom_schema_def)
-        elif schema_type in SCHEMA_REGISTRY:
-            schema = SCHEMA_REGISTRY[schema_type]()
         else:
-            raise ValueError(f"Unknown schema type: {schema_type}")
+            schema_factory = SCHEMA_REGISTRY.get(schema_type)
+            if not schema_factory:
+                raise ValueError(f"Unknown schema type: {schema_type}")
+            schema = schema_factory()
 
         # Generate reasoning based on budget
         reasoning = await _generate_reasoning(task, context, schema, budget, llm_client)
