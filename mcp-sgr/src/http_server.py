@@ -5,7 +5,8 @@ import logging
 from typing import Any, Dict, Optional
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException, Depends, Header
+import time
+from fastapi import FastAPI, HTTPException, Depends, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 import uvicorn
@@ -21,6 +22,29 @@ from .tools import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+class SimpleRateLimiter:
+    """Naive in-memory rate limiter (per key per minute)."""
+    def __init__(self, enabled: bool = False, max_rpm: int = 120):
+        self.enabled = enabled
+        self.max_rpm = max_rpm
+        self._buckets: dict[str, dict[str, float | int]] = {}
+
+    def _now_minute(self) -> int:
+        return int(time.time() // 60)
+
+    def allow(self, key: str) -> bool:
+        if not self.enabled:
+            return True
+        minute = self._now_minute()
+        bucket = self._buckets.get(key)
+        if not bucket or bucket.get("minute") != minute:
+            self._buckets[key] = {"minute": minute, "count": 1}
+            return True
+        count = int(bucket.get("count", 0)) + 1
+        bucket["count"] = count
+        return count <= self.max_rpm
 
 
 # Pydantic models for requests/responses
@@ -61,12 +85,13 @@ class HealthResponse(BaseModel):
 llm_client: Optional[LLMClient] = None
 cache_manager: Optional[CacheManager] = None
 telemetry_manager: Optional[TelemetryManager] = None
+rate_limiter: Optional[SimpleRateLimiter] = None
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Manage application lifecycle."""
-    global llm_client, cache_manager, telemetry_manager
+    global llm_client, cache_manager, telemetry_manager, rate_limiter
     
     # Startup
     logger.info("Starting HTTP facade...")
@@ -76,6 +101,11 @@ async def lifespan(app: FastAPI):
     
     await cache_manager.initialize()
     await telemetry_manager.initialize()
+
+    # Rate limiter
+    rate_enabled = os.getenv("RATE_LIMIT_ENABLED", "false").lower() == "true"
+    max_rpm = int(os.getenv("RATE_LIMIT_MAX_RPM", "120"))
+    rate_limiter = SimpleRateLimiter(rate_enabled, max_rpm)
     
     yield
     
@@ -97,10 +127,12 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Add CORS middleware
+# Add CORS middleware (configurable via ENV)
+cors_origins_env = os.getenv("HTTP_CORS_ORIGINS", "*")
+allow_origins = [o.strip() for o in cors_origins_env.split(",") if o.strip()] if cors_origins_env else ["*"]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure appropriately for production
+    allow_origins=allow_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -109,11 +141,28 @@ app.add_middleware(
 
 # Optional API key authentication
 async def verify_api_key(x_api_key: Optional[str] = Header(default=None)) -> bool:
-    """Verify API key if configured."""
+    """Verify API key if configured or required."""
     expected_key = os.getenv("HTTP_AUTH_TOKEN")
-    if not expected_key:
-        return True  # No auth required if not configured
-    return x_api_key == expected_key
+    require_auth = os.getenv("HTTP_REQUIRE_AUTH", "false").lower() == "true"
+    if not require_auth and not expected_key:
+        return True  # No auth enforced
+    if expected_key and x_api_key == expected_key:
+        return True
+    return False
+
+
+async def verify_rate_limit(request: Request) -> bool:
+    """Simple per-minute rate limiter by client key (ip or api key)."""
+    if not rate_limiter or not rate_limiter.enabled:
+        return True
+    # Prefer API key for bucketing; fallback to client host
+    api_key = request.headers.get("x-api-key") or request.headers.get("x_api_key")
+    client = request.client.host if request.client else "unknown"
+    key = api_key or client
+    allowed = rate_limiter.allow(key)
+    if not allowed:
+        raise HTTPException(status_code=429, detail="Rate limit exceeded")
+    return True
 
 
 @app.get("/health", response_model=HealthResponse)
@@ -130,7 +179,8 @@ async def health_check():
 @app.post("/v1/apply-sgr")
 async def apply_sgr(
     request: ApplySGRRequest,
-    authorized: bool = Depends(verify_api_key)
+    authorized: bool = Depends(verify_api_key),
+    _: bool = Depends(verify_rate_limit)
 ):
     """Apply SGR schema to analyze a task."""
     if not authorized:
@@ -152,7 +202,8 @@ async def apply_sgr(
 @app.post("/v1/wrap-agent")
 async def wrap_agent(
     request: WrapAgentRequest,
-    authorized: bool = Depends(verify_api_key)
+    authorized: bool = Depends(verify_api_key),
+    _: bool = Depends(verify_rate_limit)
 ):
     """Wrap agent call with pre/post analysis."""
     if not authorized:
@@ -174,7 +225,8 @@ async def wrap_agent(
 @app.post("/v1/enhance-prompt")
 async def enhance_prompt(
     request: EnhancePromptRequest,
-    authorized: bool = Depends(verify_api_key)
+    authorized: bool = Depends(verify_api_key),
+    _: bool = Depends(verify_rate_limit)
 ):
     """Enhance a prompt with SGR structure."""
     if not authorized:
@@ -195,7 +247,8 @@ async def enhance_prompt(
 @app.post("/v1/learn-schema")
 async def learn_schema(
     request: LearnSchemaRequest,
-    authorized: bool = Depends(verify_api_key)
+    authorized: bool = Depends(verify_api_key),
+    _: bool = Depends(verify_rate_limit)
 ):
     """Learn new schema from examples."""
     if not authorized:
@@ -213,7 +266,7 @@ async def learn_schema(
 
 
 @app.get("/v1/schemas")
-async def list_schemas(authorized: bool = Depends(verify_api_key)):
+async def list_schemas(authorized: bool = Depends(verify_api_key), _: bool = Depends(verify_rate_limit)):
     """List available schemas."""
     if not authorized:
         raise HTTPException(status_code=401, detail="Invalid API key")
@@ -232,7 +285,7 @@ async def list_schemas(authorized: bool = Depends(verify_api_key)):
 
 
 @app.get("/v1/cache-stats")
-async def get_cache_stats(authorized: bool = Depends(verify_api_key)):
+async def get_cache_stats(authorized: bool = Depends(verify_api_key), _: bool = Depends(verify_rate_limit)):
     """Get cache statistics."""
     if not authorized:
         raise HTTPException(status_code=401, detail="Invalid API key")
@@ -247,7 +300,8 @@ async def get_cache_stats(authorized: bool = Depends(verify_api_key)):
 async def get_traces(
     limit: int = 10,
     tool_name: Optional[str] = None,
-    authorized: bool = Depends(verify_api_key)
+    authorized: bool = Depends(verify_api_key),
+    _: bool = Depends(verify_rate_limit)
 ):
     """Get recent reasoning traces."""
     if not authorized:

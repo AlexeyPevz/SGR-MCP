@@ -136,24 +136,24 @@ class SummarizationSchema(BaseSchema):
                 },
                 "validation": {
                     "completeness_check": {
-                        "all_sections_covered": true,
-                        "key_points_preserved": true,
-                        "critical_details_included": true
+                        "all_sections_covered": True,
+                        "key_points_preserved": True,
+                        "critical_details_included": True
                     },
                     "accuracy_verification": {
-                        "technical_terms_correct": true,
-                        "numbers_preserved": true,
-                        "timeline_accurate": true
+                        "technical_terms_correct": True,
+                        "numbers_preserved": True,
+                        "timeline_accurate": True
                     },
                     "length_compliance": {
                         "target_length": 500,
                         "actual_length": 487,
-                        "within_tolerance": true
+                        "within_tolerance": True
                     },
                     "audience_appropriateness": {
                         "technical_level": "appropriate",
                         "assumed_knowledge": "API design, OAuth, caching",
-                        "jargon_explained": false
+                        "jargon_explained": False
                     },
                     "quality_score": 0.92,
                     "potential_improvements": [

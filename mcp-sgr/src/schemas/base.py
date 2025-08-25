@@ -60,7 +60,13 @@ class BaseSchema(ABC):
     """Base class for all SGR schemas."""
     
     def __init__(self):
-        self.schema_id = self.__class__.__name__.lower().replace("schema", "")
+        # Convert class name like CodeGenerationSchema -> code_generation
+        import re
+        class_name = self.__class__.__name__
+        snake = re.sub(r'(?<!^)(?=[A-Z])', '_', class_name).lower()
+        if snake.endswith("_schema"):
+            snake = snake[:-7]
+        self.schema_id = snake
         self._json_schema = None
     
     @abstractmethod
@@ -152,34 +158,47 @@ class BaseSchema(ABC):
         """Perform semantic validation beyond JSON Schema."""
         warnings = []
         
+        def get_nested_value(obj: Dict[str, Any], dotted_key: str) -> Any:
+            current: Any = obj
+            for part in dotted_key.split('.'):
+                if isinstance(current, dict) and part in current:
+                    current = current[part]
+                else:
+                    return None
+            return current
+        
         # Check for empty arrays that shouldn't be empty
         for field in self.get_fields():
             if field.type == "array" and field.required:
-                value = data.get(field.name, [])
+                value = get_nested_value(data, field.name)
                 if isinstance(value, list) and len(value) == 0:
                     warnings.append(f"Field '{field.name}' is empty but should contain items")
         
         return warnings
     
     def _calculate_confidence(self, data: Dict[str, Any], warnings: List[str]) -> float:
-        """Calculate confidence score for the reasoning."""
-        # Base confidence
-        confidence = 1.0
+        """Calculate confidence score for the reasoning.
         
-        # Reduce for warnings
-        confidence -= len(warnings) * 0.1
+        Heuristic: start from 0.9, subtract 0.1 per warning (min 0), and small
+        penalties for clearly short string fields when present. Do not penalize
+        for missing optional fields.
+        """
+        confidence = 0.9
+        confidence -= min(len(warnings) * 0.1, 0.5)
         
-        # Reduce for missing optional fields
-        all_fields = {f.name for f in self.get_fields()}
-        provided_fields = set(data.keys())
-        missing_optional = all_fields - provided_fields
-        confidence -= len(missing_optional) * 0.05
-        
-        # Reduce for very short text fields
+        # Reduce for very short top-level string fields when present
         for field in self.get_fields():
-            if field.type == "string" and field.name in data:
-                value = data[field.name]
-                if isinstance(value, str) and len(value) < 10:
+            if field.type == "string":
+                # Support dotted notation
+                parts = field.name.split('.')
+                current: Any = data
+                for part in parts:
+                    if isinstance(current, dict) and part in current:
+                        current = current[part]
+                    else:
+                        current = None
+                        break
+                if isinstance(current, str) and len(current) < 10:
                     confidence -= 0.05
         
         return max(0.0, min(1.0, confidence))

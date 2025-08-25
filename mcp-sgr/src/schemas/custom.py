@@ -72,7 +72,11 @@ class CustomSchema(BaseSchema):
     def validate(self, data: Dict[str, Any]) -> ValidationResult:
         """Validate data against custom schema."""
         try:
-            jsonschema.validate(instance=data, schema=self._schema_def)
+            # Use Draft7Validator to collect all errors rather than fail-fast
+            validator = jsonschema.Draft7Validator(self._schema_def)
+            errors = [e.message for e in validator.iter_errors(data)]
+            if errors:
+                return ValidationResult(valid=False, errors=errors, confidence=0.0)
             
             # Calculate basic confidence
             confidence = self._calculate_basic_confidence(data)
@@ -82,12 +86,8 @@ class CustomSchema(BaseSchema):
                 warnings=[],
                 confidence=confidence
             )
-        except jsonschema.ValidationError as e:
-            return ValidationResult(
-                valid=False,
-                errors=[str(e)],
-                confidence=0.0
-            )
+        except jsonschema.SchemaError as e:
+            return ValidationResult(valid=False, errors=[str(e)], confidence=0.0)
     
     def _calculate_basic_confidence(self, data: Dict[str, Any]) -> float:
         """Calculate basic confidence for custom schema."""

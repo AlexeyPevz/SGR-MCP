@@ -3,7 +3,8 @@
 import json
 import asyncio
 import aiohttp
-from typing import Any, Dict, Optional
+from tenacity import retry, stop_after_attempt, wait_exponential
+from typing import Any, Dict, Optional, List
 from datetime import datetime
 import logging
 
@@ -156,12 +157,18 @@ Provide structured analysis to understand:
 3. Expected response characteristics
 4. Risk factors"""
     
+    # Determine agent type label
+    if isinstance(agent_endpoint, str):
+        agent_type = agent_endpoint.split("/")[-1]
+    else:
+        agent_type = getattr(agent_endpoint, "__name__", "callable")
+
     # Use apply_sgr for analysis
     result = await apply_sgr_tool(
         {
             "task": task,
             "context": {
-                "agent_type": agent_endpoint.split("/")[-1],
+                "agent_type": agent_type,
                 "request_size": len(json.dumps(agent_request))
             },
             "schema_type": schema_type if schema_type != "auto" else "analysis",
@@ -199,6 +206,19 @@ async def _enhance_request(
     return enhanced
 
 
+@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=0.5, min=1, max=4))
+async def _http_post_with_retry(url: str, json_body: Dict[str, Any]) -> Dict[str, Any]:
+    timeout = aiohttp.ClientTimeout(total=30)
+    headers = {"Content-Type": "application/json"}
+    async with aiohttp.ClientSession(timeout=timeout) as session:
+        async with session.post(url, json=json_body, headers=headers) as response:
+            if response.status in (429, 500, 502, 503, 504):
+                text = await response.text()
+                raise RuntimeError(f"Agent HTTP {response.status}: {text}")
+            response.raise_for_status()
+            return await response.json()
+
+
 async def _call_agent(endpoint: str, request: Dict[str, Any]) -> Dict[str, Any]:
     """Call the actual agent endpoint."""
     
@@ -212,13 +232,7 @@ async def _call_agent(endpoint: str, request: Dict[str, Any]) -> Dict[str, Any]:
     
     # Otherwise treat as HTTP endpoint
     if endpoint.startswith(("http://", "https://")):
-        async with aiohttp.ClientSession() as session:
-            async with session.post(endpoint, json=request) as response:
-                if response.status == 200:
-                    return await response.json()
-                else:
-                    error_text = await response.text()
-                    raise Exception(f"Agent call failed: {response.status} - {error_text}")
+        return await _http_post_with_retry(endpoint, request)
     
     # Mock response for testing
     logger.warning(f"Mock response for endpoint: {endpoint}")

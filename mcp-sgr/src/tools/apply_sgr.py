@@ -3,7 +3,7 @@
 import json
 import asyncio
 from typing import Any, Dict, List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 
 from ..schemas import SCHEMA_REGISTRY
@@ -44,8 +44,16 @@ async def apply_sgr_tool(
         custom_schema_def = arguments.get("custom_schema")
         budget = arguments.get("budget", "lite")
         
-        # Check cache first
-        cache_key = f"sgr:{schema_type}:{hash(task)}"
+        # Check cache first (stable key)
+        import hashlib
+        payload_for_key = {
+            "task": task,
+            "context": context,
+            "schema_type": schema_type,
+            "budget": budget,
+        }
+        key_str = json.dumps(payload_for_key, sort_keys=True, ensure_ascii=False)
+        cache_key = f"sgr:{hashlib.sha256(key_str.encode('utf-8')).hexdigest()}"
         cached_result = await cache_manager.get(cache_key)
         if cached_result and budget != "full":
             logger.info(f"Cache hit for {cache_key}")
@@ -84,7 +92,7 @@ async def apply_sgr_tool(
             "metadata": {
                 "schema_type": schema_type,
                 "budget": budget,
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "validation": {
                     "valid": validation_result.valid,
                     "errors": validation_result.errors,
@@ -187,38 +195,72 @@ Requirements for FULL analysis:
 Take your time to provide comprehensive reasoning."""
     
     # Generate reasoning
-    response = await llm_client.generate(
-        prompt,
-        temperature=0.3 if budget == "full" else 0.1,
-        max_tokens=4000 if budget == "full" else 2000
-    )
+    try:
+        response = await llm_client.generate(
+            prompt,
+            temperature=0.3 if budget == "full" else 0.1,
+            max_tokens=4000 if budget == "full" else 2000
+        )
+    except Exception as e:
+        logger.error(f"LLM generation failed, falling back to minimal structure: {e}")
+        # Fallback to minimal reasoning structure matching the schema shape
+        schema_json = schema.to_json_schema()
+        fallback: Dict[str, Any] = {}
+        props = schema_json.get("properties", {})
+        for key, prop in props.items():
+            t = prop.get("type")
+            if t == "object":
+                fallback[key] = {}
+            elif t == "array":
+                fallback[key] = []
+            elif t == "number" or t == "integer":
+                fallback[key] = 0
+            elif t == "boolean":
+                fallback[key] = False
+            else:
+                fallback[key] = ""
+        return fallback
     
     # Parse JSON response
     try:
         # Clean response if needed
-        response = response.strip()
-        if response.startswith("```json"):
-            response = response[7:]
-        if response.endswith("```"):
-            response = response[:-3]
-        
-        reasoning = json.loads(response)
-        return reasoning
-        
-    except json.JSONDecodeError as e:
+        raw = response.strip()
+        # Strip code fences
+        if raw.startswith("```json"):
+            raw = raw[7:]
+        if raw.startswith("```"):
+            raw = raw[3:]
+        if raw.endswith("```"):
+            raw = raw[:-3]
+
+        # Try direct load
+        return json.loads(raw)
+
+    except json.JSONDecodeError:
         logger.error(f"Failed to parse reasoning JSON: {e}")
         logger.debug(f"Raw response: {response}")
-        
-        # Try to extract JSON from response
+
+        # Try to balance braces and extract best-effort JSON
         import re
-        json_match = re.search(r'\{.*\}', response, re.DOTALL)
+        candidate = raw
+        # Find first '{' and last '}'
+        start = candidate.find('{')
+        end = candidate.rfind('}')
+        if start != -1 and end != -1 and end > start:
+            snippet = candidate[start:end+1]
+            try:
+                return json.loads(snippet)
+            except Exception:
+                pass
+
+        # Regex fallback
+        json_match = re.search(r'\{[\s\S]*\}', candidate)
         if json_match:
             try:
-                reasoning = json.loads(json_match.group())
-                return reasoning
-            except:
+                return json.loads(json_match.group(0))
+            except Exception:
                 pass
-        
+
         # Fallback - return minimal structure
         return {"error": "Failed to parse reasoning", "raw_response": response}
 
