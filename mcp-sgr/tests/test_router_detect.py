@@ -9,4 +9,3 @@ def test_detect_task_type_russian_keywords():
     assert r.detect_task_type("Напиши код для парсера") == TaskType.CODE_GENERATION
     assert r.detect_task_type("Сделай краткое резюме документа") == TaskType.SUMMARIZATION
     assert r.detect_task_type("Найди ошибку в логе") == TaskType.SEARCH
-

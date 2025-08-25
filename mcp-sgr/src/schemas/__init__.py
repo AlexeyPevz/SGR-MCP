@@ -1,13 +1,15 @@
 """SGR Schema definitions."""
 
-from .base import BaseSchema, SchemaField, ValidationResult
+from typing import Dict, Type
+
 from .analysis import AnalysisSchema
-from .planning import PlanningSchema
-from .decision import DecisionSchema
+from .base import BaseSchema, SchemaField, ValidationResult
 from .code import CodeGenerationSchema
+from .decision import DecisionSchema
+from .planning import PlanningSchema
 from .summary import SummarizationSchema
 
-SCHEMA_REGISTRY = {
+SCHEMA_REGISTRY: Dict[str, Type[BaseSchema]] = {
     "analysis": AnalysisSchema,
     "planning": PlanningSchema,
     "decision": DecisionSchema,

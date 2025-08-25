@@ -1,4 +1,5 @@
 import os
+
 from fastapi.testclient import TestClient
 
 os.environ.setdefault("HTTP_REQUIRE_AUTH", "true")
@@ -37,4 +38,3 @@ def test_rate_limit_enforced():
         assert r1.status_code == 200
         r2 = client.get("/v1/schemas", headers=headers)
         assert r2.status_code == 429
-

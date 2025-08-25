@@ -10,8 +10,9 @@ from pathlib import Path
 
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
+from pydantic.networks import AnyUrl, UrlConstraints
 from mcp.types import (
-    Tool, Resource, TextContent, ImageContent, EmbeddedResource,
+    Tool, Resource, TextResourceContents, TextContent,
     ListResourcesResult, ReadResourceResult, ListToolsResult, CallToolResult
 )
 from pydantic import BaseModel, Field
@@ -195,13 +196,13 @@ class SGRServer:
                     raise ValueError(f"Unknown tool: {name}")
                 
                 return CallToolResult(
-                    content=[TextContent(text=json.dumps(result, indent=2))]
+                    content=[TextContent(type="text", text=json.dumps(result, indent=2))]
                 )
                 
             except Exception as e:
                 logger.error(f"Tool execution failed: {e}", exc_info=True)
                 return CallToolResult(
-                    content=[TextContent(text=json.dumps({
+                    content=[TextContent(type="text", text=json.dumps({
                         "error": str(e),
                         "type": type(e).__name__
                     }))]
@@ -212,23 +213,23 @@ class SGRServer:
             """List available resources."""
             resources = [
                 Resource(
-                    uri="sgr://schemas",
+                    uri=AnyUrl.build(scheme="sgr", host="schemas"),
                     name="schema_library",
                     description="Available SGR schemas",
                     mimeType="application/json"
                 ),
                 Resource(
-                    uri="sgr://policy",
+                    uri=AnyUrl.build(scheme="sgr", host="policy"),
                     name="policy",
                     description="Current routing and budget policy",
                     mimeType="application/yaml"
                 ),
                 Resource(
-                    uri="sgr://traces",
+                    uri=AnyUrl.build(scheme="sgr", host="traces"),
                     name="traces",
                     description="Recent reasoning traces",
-                    mimeType="application/json"
-                )
+                    mimeType="application/json",
+                ),
             ]
             return ListResourcesResult(resources=resources)
         
@@ -240,18 +241,16 @@ class SGRServer:
             if uri == "sgr://schemas":
                 # Return schema library
                 schemas = {}
-                for name, schema_class in SCHEMA_REGISTRY.items():
-                    schema = schema_class()
+                for name, schema_factory in SCHEMA_REGISTRY.items():
+                    schema = schema_factory()
                     schemas[name] = {
                         "description": schema.get_description(),
                         "schema": schema.to_json_schema(),
-                        "examples": schema.get_examples()
+                        "examples": schema.get_examples(),
                     }
                 
                 content = json.dumps(schemas, indent=2)
-                return ReadResourceResult(
-                    content=[TextContent(text=content)]
-                )
+                return ReadResourceResult(contents=[TextResourceContents(uri=AnyUrl.build(scheme="sgr", host="schemas"), text=content)])
             
             elif uri == "sgr://policy":
                 # Return current policy
@@ -270,17 +269,13 @@ router:
     max_attempts: 2
     backoff: 0.8
 """
-                return ReadResourceResult(
-                    content=[TextContent(text=content)]
-                )
+                return ReadResourceResult(contents=[TextResourceContents(uri=AnyUrl.build(scheme="sgr", host="policy"), text=content)])
             
             elif uri == "sgr://traces":
                 # Return recent traces
                 traces = await self.cache_manager.get_recent_traces(limit=10)
                 content = json.dumps(traces, indent=2)
-                return ReadResourceResult(
-                    content=[TextContent(text=content)]
-                )
+                return ReadResourceResult(contents=[TextResourceContents(uri=AnyUrl.build(scheme="sgr", host="traces"), text=content)])
             
             else:
                 raise ValueError(f"Unknown resource: {uri}")

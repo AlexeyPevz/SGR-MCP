@@ -2,7 +2,7 @@
 
 import os
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, List
 from contextlib import asynccontextmanager
 
 import time
@@ -61,7 +61,7 @@ class ApplySGRRequest(BaseModel):
 class WrapAgentRequest(BaseModel):
     agent_endpoint: str = Field(..., description="Agent endpoint URL or identifier")
     agent_request: Dict[str, Any] = Field(..., description="Request payload for the agent")
-    sgr_config: Optional[Dict[str, Any]] = Field(default={}, description="SGR configuration")
+    sgr_config: Optional[Dict[str, Any]] = Field(default_factory=dict, description="SGR configuration")
 
 
 class EnhancePromptRequest(BaseModel):
@@ -71,7 +71,7 @@ class EnhancePromptRequest(BaseModel):
 
 
 class LearnSchemaRequest(BaseModel):
-    examples: list = Field(..., description="Example inputs and expected reasoning", min_items=3)
+    examples: List[Dict[str, Any]] = Field(..., description="Example inputs and expected reasoning", min_length=3)
     task_type: str = Field(..., description="Name for the new schema/task type")
     description: Optional[str] = Field(default=None, description="Description of the schema")
 
@@ -188,6 +188,8 @@ async def apply_sgr(
     if not authorized:
         raise HTTPException(status_code=401, detail="Invalid API key")
     
+    if not llm_client or not cache_manager or not telemetry_manager:
+        raise HTTPException(status_code=503, detail="Service not initialized")
     try:
         result = await apply_sgr_tool(
             arguments=request.dict(),
@@ -211,6 +213,8 @@ async def wrap_agent(
     if not authorized:
         raise HTTPException(status_code=401, detail="Invalid API key")
     
+    if not llm_client or not cache_manager or not telemetry_manager:
+        raise HTTPException(status_code=503, detail="Service not initialized")
     try:
         result = await wrap_agent_call_tool(
             arguments=request.dict(),
@@ -234,6 +238,8 @@ async def enhance_prompt(
     if not authorized:
         raise HTTPException(status_code=401, detail="Invalid API key")
     
+    if not llm_client or not cache_manager:
+        raise HTTPException(status_code=503, detail="Service not initialized")
     try:
         result = await enhance_prompt_tool(
             arguments=request.dict(),
@@ -256,6 +262,8 @@ async def learn_schema(
     if not authorized:
         raise HTTPException(status_code=401, detail="Invalid API key")
     
+    if not llm_client:
+        raise HTTPException(status_code=503, detail="Service not initialized")
     try:
         result = await learn_schema_tool(
             arguments=request.dict(),
@@ -268,26 +276,30 @@ async def learn_schema(
 
 
 @app.get("/v1/schemas")
-async def list_schemas(authorized: bool = Depends(verify_api_key), _: bool = Depends(verify_rate_limit)):
+async def list_schemas(
+    authorized: bool = Depends(verify_api_key), _: bool = Depends(verify_rate_limit)
+):
     """List available schemas."""
     if not authorized:
         raise HTTPException(status_code=401, detail="Invalid API key")
     
     from .schemas import SCHEMA_REGISTRY
     
-    schemas = {}
-    for name, schema_class in SCHEMA_REGISTRY.items():
-        schema = schema_class()
+    schemas: Dict[str, Any] = {}
+    for name, schema_factory in SCHEMA_REGISTRY.items():
+        schema = schema_factory()
         schemas[name] = {
             "description": schema.get_description(),
-            "fields": [f.name for f in schema.get_fields()]
+            "fields": [f.name for f in schema.get_fields()],
         }
     
     return schemas
 
 
 @app.get("/v1/cache-stats")
-async def get_cache_stats(authorized: bool = Depends(verify_api_key), _: bool = Depends(verify_rate_limit)):
+async def get_cache_stats(
+    authorized: bool = Depends(verify_api_key), _: bool = Depends(verify_rate_limit)
+):
     """Get cache statistics."""
     if not authorized:
         raise HTTPException(status_code=401, detail="Invalid API key")
@@ -315,7 +327,7 @@ async def get_traces(
     return await cache_manager.get_recent_traces(limit=limit, tool_name=tool_name)
 
 
-def run_http_server(host: str = "0.0.0.0", port: int = 8080):
+def run_http_server(host: str = "127.0.0.1", port: int = 8080):
     """Run the HTTP server."""
     uvicorn.run(
         "src.http_server:app",
