@@ -213,19 +213,19 @@ class SGRServer:
             """List available resources."""
             resources = [
                 Resource(
-                    uri=AnyUrl.build(scheme="sgr", host="schemas"),
+                    uri="sgr://schemas",
                     name="schema_library",
                     description="Available SGR schemas",
                     mimeType="application/json"
                 ),
                 Resource(
-                    uri=AnyUrl.build(scheme="sgr", host="policy"),
+                    uri="sgr://policy",
                     name="policy",
                     description="Current routing and budget policy",
                     mimeType="application/yaml"
                 ),
                 Resource(
-                    uri=AnyUrl.build(scheme="sgr", host="traces"),
+                    uri="sgr://traces",
                     name="traces",
                     description="Recent reasoning traces",
                     mimeType="application/json",
@@ -250,7 +250,7 @@ class SGRServer:
                     }
                 
                 content = json.dumps(schemas, indent=2)
-                return ReadResourceResult(contents=[TextResourceContents(uri=AnyUrl.build(scheme="sgr", host="schemas"), text=content)])
+                return ReadResourceResult(contents=[TextResourceContents(uri="sgr://schemas", text=content)])
             
             elif uri == "sgr://policy":
                 # Return current policy
@@ -269,13 +269,13 @@ router:
     max_attempts: 2
     backoff: 0.8
 """
-                return ReadResourceResult(contents=[TextResourceContents(uri=AnyUrl.build(scheme="sgr", host="policy"), text=content)])
+                return ReadResourceResult(contents=[TextResourceContents(uri="sgr://policy", text=content)])
             
             elif uri == "sgr://traces":
                 # Return recent traces
                 traces = await self.cache_manager.get_recent_traces(limit=10)
                 content = json.dumps(traces, indent=2)
-                return ReadResourceResult(contents=[TextResourceContents(uri=AnyUrl.build(scheme="sgr", host="traces"), text=content)])
+                return ReadResourceResult(contents=[TextResourceContents(uri="sgr://traces", text=content)])
             
             else:
                 raise ValueError(f"Unknown resource: {uri}")

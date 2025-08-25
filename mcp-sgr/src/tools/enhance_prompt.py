@@ -30,8 +30,15 @@ async def enhance_prompt_tool(
         target_model = arguments.get("target_model", "default")
         enhancement_level = arguments.get("enhancement_level", "standard")
 
-        # Check cache
-        cache_key = f"enhance:{hash(original_prompt)}:{enhancement_level}"
+        # Check cache with stable key
+        import hashlib
+        key_payload = {
+            "original_prompt": original_prompt,
+            "target_model": target_model,
+            "enhancement_level": enhancement_level,
+        }
+        key_str = json.dumps(key_payload, sort_keys=True, ensure_ascii=False)
+        cache_key = f"enhance:{hashlib.sha256(key_str.encode('utf-8')).hexdigest()}"
         cached_result = await cache_manager.get(cache_key)
         if cached_result:
             logger.info(f"Cache hit for prompt enhancement")
