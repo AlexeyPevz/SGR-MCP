@@ -47,11 +47,15 @@ async def apply_sgr_tool(
         # Check cache first (stable key)
         import hashlib
 
+        # Include backend/model in cache key to avoid stale cross-backend hits
+        from os import getenv
         payload_for_key = {
             "task": task,
             "context": context,
             "schema_type": schema_type,
             "budget": budget,
+            "backend": backend or getenv("ROUTER_DEFAULT_BACKEND") or "auto",
+            "model": getenv("OPENROUTER_DEFAULT_MODEL") or getenv("OLLAMA_DEFAULT_MODEL") or "auto",
         }
         key_str = json.dumps(payload_for_key, sort_keys=True, ensure_ascii=False)
         cache_key = f"sgr:{hashlib.sha256(key_str.encode('utf-8')).hexdigest()}"
