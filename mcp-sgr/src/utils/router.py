@@ -240,17 +240,17 @@ class ModelRouter:
         # Simple keyword-based detection
         task_lower = task.lower()
         
-        if any(word in task_lower for word in ["analyze", "understand", "identify", "assess"]):
+        if any(word in task_lower for word in ["analyze", "understand", "identify", "assess", "анализ", "понять", "оценить", "разобрать"]):
             return TaskType.ANALYSIS
-        elif any(word in task_lower for word in ["plan", "strategy", "approach", "steps"]):
+        elif any(word in task_lower for word in ["plan", "strategy", "approach", "steps", "план", "стратегия", "подход", "шаги"]):
             return TaskType.PLANNING
-        elif any(word in task_lower for word in ["decide", "choose", "select", "compare"]):
+        elif any(word in task_lower for word in ["decide", "choose", "select", "compare", "решить", "выбрать", "сравнить"]):
             return TaskType.DECISION
-        elif any(word in task_lower for word in ["code", "implement", "program", "function"]):
+        elif any(word in task_lower for word in ["code", "implement", "program", "function", "код", "реализовать", "функция"]):
             return TaskType.CODE_GENERATION
-        elif any(word in task_lower for word in ["summarize", "summary", "brief", "overview"]):
+        elif any(word in task_lower for word in ["summarize", "summary", "brief", "overview", "суммариз", "резюме", "кратко", "обзор"]):
             return TaskType.SUMMARIZATION
-        elif any(word in task_lower for word in ["search", "find", "locate", "lookup"]):
+        elif any(word in task_lower for word in ["search", "find", "locate", "lookup", "искать", "найти", "поиск"]):
             return TaskType.SEARCH
         else:
             return TaskType.GENERAL

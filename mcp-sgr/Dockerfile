@@ -57,5 +57,5 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8080/health || exit 1
 
-# Default command - can be overridden
-CMD ["python", "-m", "src.server"]
+# Default command - HTTP server to match healthcheck
+CMD ["python", "-m", "src.http_server"]

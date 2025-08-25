@@ -112,19 +112,14 @@ class PIIRedactor:
         counts = {}
         
         for name, pattern in self.active_patterns.items():
-            matches = pattern.pattern.findall(redacted)
-            if matches:
-                counts[name] = len(matches)
-                
+            def _repl(m: re.Match) -> str:
+                counts[name] = counts.get(name, 0) + 1
                 if pattern.hash_it:
-                    # Replace with hash for tracking
-                    for match in set(matches):
-                        hash_suffix = hashlib.md5(str(match).encode()).hexdigest()[:8]
-                        replacement = f"{pattern.replacement}:{hash_suffix}"
-                        redacted = redacted.replace(match, replacement)
-                else:
-                    # Simple replacement
-                    redacted = pattern.pattern.sub(pattern.replacement, redacted)
+                    hash_suffix = hashlib.md5(m.group(0).encode()).hexdigest()[:8]
+                    return f"{pattern.replacement}:{hash_suffix}"
+                return pattern.replacement
+
+            redacted = pattern.pattern.sub(_repl, redacted)
         
         return redacted, counts
     

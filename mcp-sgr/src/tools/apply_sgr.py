@@ -224,29 +224,43 @@ Take your time to provide comprehensive reasoning."""
     # Parse JSON response
     try:
         # Clean response if needed
-        response = response.strip()
-        if response.startswith("```json"):
-            response = response[7:]
-        if response.endswith("```"):
-            response = response[:-3]
-        
-        reasoning = json.loads(response)
-        return reasoning
-        
-    except json.JSONDecodeError as e:
+        raw = response.strip()
+        # Strip code fences
+        if raw.startswith("```json"):
+            raw = raw[7:]
+        if raw.startswith("```"):
+            raw = raw[3:]
+        if raw.endswith("```"):
+            raw = raw[:-3]
+
+        # Try direct load
+        return json.loads(raw)
+
+    except json.JSONDecodeError:
         logger.error(f"Failed to parse reasoning JSON: {e}")
         logger.debug(f"Raw response: {response}")
-        
-        # Try to extract JSON from response
+
+        # Try to balance braces and extract best-effort JSON
         import re
-        json_match = re.search(r'\{.*\}', response, re.DOTALL)
+        candidate = raw
+        # Find first '{' and last '}'
+        start = candidate.find('{')
+        end = candidate.rfind('}')
+        if start != -1 and end != -1 and end > start:
+            snippet = candidate[start:end+1]
+            try:
+                return json.loads(snippet)
+            except Exception:
+                pass
+
+        # Regex fallback
+        json_match = re.search(r'\{[\s\S]*\}', candidate)
         if json_match:
             try:
-                reasoning = json.loads(json_match.group())
-                return reasoning
-            except:
+                return json.loads(json_match.group(0))
+            except Exception:
                 pass
-        
+
         # Fallback - return minimal structure
         return {"error": "Failed to parse reasoning", "raw_response": response}
 
