@@ -7,7 +7,7 @@ from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
 import jsonschema
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field
 
 
 class ConfidenceLevel(str, Enum):
@@ -102,7 +102,7 @@ class BaseSchema(ABC):
         required = []
 
         for field in self.get_fields():
-            prop = {"type": field.type}
+            prop: Dict[str, Any] = {"type": field.type}
 
             if field.description:
                 prop["description"] = field.description
@@ -166,11 +166,11 @@ class BaseSchema(ABC):
             return current
 
         # Check for empty arrays that shouldn't be empty
-        for field in self.get_fields():
-            if field.type == "array" and field.required:
-                value = get_nested_value(data, field.name)
+        for f in self.get_fields():
+            if f.type == "array" and f.required:
+                value = get_nested_value(data, f.name)
                 if isinstance(value, list) and len(value) == 0:
-                    warnings.append(f"Field '{field.name}' is empty but should contain items")
+                    warnings.append(f"Field '{f.name}' is empty but should contain items")
 
         return warnings
 

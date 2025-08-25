@@ -25,7 +25,7 @@ def setup_logging(
         backup_count: Number of backup files to keep
     """
     # Get configuration from environment or use defaults
-    log_level = log_level or os.getenv("LOG_LEVEL", "INFO")
+    log_level = (log_level or os.getenv("LOG_LEVEL", "INFO")) or "INFO"
     log_file = log_file or os.getenv("LOG_FILE", "./logs/mcp-sgr.log")
     log_format = log_format or os.getenv("LOG_FORMAT", "text")
 

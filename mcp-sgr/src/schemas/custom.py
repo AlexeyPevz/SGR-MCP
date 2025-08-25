@@ -114,9 +114,9 @@ class SchemaBuilder:
     def __init__(self, schema_id: str, description: str = ""):
         self.schema_id = schema_id
         self.description = description
-        self.properties = {}
-        self.required = []
-        self.examples = []
+        self.properties: Dict[str, Any] = {}
+        self.required: List[str] = []
+        self.examples: List[Dict[str, Any]] = []
 
     def add_field(
         self,

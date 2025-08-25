@@ -230,7 +230,7 @@ Take your time to provide comprehensive reasoning."""
         # Try direct load
         return json.loads(raw)
 
-    except json.JSONDecodeError:
+    except json.JSONDecodeError as e:
         logger.error(f"Failed to parse reasoning JSON: {e}")
         logger.debug(f"Raw response: {response}")
 
@@ -245,16 +245,16 @@ Take your time to provide comprehensive reasoning."""
             snippet = candidate[start : end + 1]
             try:
                 return json.loads(snippet)
-            except Exception:
-                pass
+            except Exception as inner_err:
+                logger.debug(f"Snippet JSON parse failed: {inner_err}")
 
         # Regex fallback
         json_match = re.search(r"\{[\s\S]*\}", candidate)
         if json_match:
             try:
                 return json.loads(json_match.group(0))
-            except Exception:
-                pass
+            except Exception as regex_err:
+                logger.debug(f"Regex JSON parse failed: {regex_err}")
 
         # Fallback - return minimal structure
         return {"error": "Failed to parse reasoning", "raw_response": response}

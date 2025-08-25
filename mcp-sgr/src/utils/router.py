@@ -44,15 +44,15 @@ class RoutingRule:
                     field = parts[0].strip()
                     value = parts[1].strip().strip('"').strip("'")
 
-                    # Handle nested fields
-                    current = context
+                    # Handle nested fields safely
+                    obj: Any = context
                     for part in field.split("."):
-                        if part in current:
-                            current = current[part]
+                        if isinstance(obj, dict) and part in obj:
+                            obj = obj[part]
                         else:
                             return False
 
-                    return str(current) == value
+                    return str(obj) == value
 
             elif " in " in self.condition:
                 parts = self.condition.split(" in ")
@@ -60,14 +60,14 @@ class RoutingRule:
                     field = parts[0].strip()
                     values = ast.literal_eval(parts[1].strip())
 
-                    current = context
+                    obj: Any = context
                     for part in field.split("."):
-                        if part in current:
-                            current = current[part]
+                        if isinstance(obj, dict) and part in obj:
+                            obj = obj[part]
                         else:
                             return False
 
-                    return current in values
+                    return obj in values
 
             elif (
                 " < " in self.condition
@@ -83,19 +83,19 @@ class RoutingRule:
                             field = parts[0].strip()
                             value = float(parts[1].strip())
 
-                            current: Any = context
+                            obj: Any = context
                             for part in field.split("."):
-                                if part in current:
-                                    current = current[part]
+                                if isinstance(obj, dict) and part in obj:
+                                    obj = obj[part]
                                 else:
                                     return False
 
                             # Normalize to float if possible
                             try:
-                                current_value = float(current)  # type: ignore[arg-type]
+                                current_value = float(obj)  # type: ignore[arg-type]
                             except (TypeError, ValueError):
                                 logger.error(
-                                    f"Non-numeric value for comparison in field '{field}': {current}"
+                                    f"Non-numeric value for comparison in field '{field}': {obj}"
                                 )
                                 return False
 
