@@ -9,39 +9,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 import aiosqlite
-from sqlalchemy import create_engine, Column, String, Text, DateTime, Integer
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
-
 logger = logging.getLogger(__name__)
-
-Base = declarative_base()
-
-
-class CacheEntry(Base):
-    """Cache entry model."""
-    __tablename__ = "cache_entries"
-    
-    key = Column(String, primary_key=True)
-    value = Column(Text)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    expires_at = Column(DateTime)
-    hit_count = Column(Integer, default=0)
-
-
-class TraceEntry(Base):
-    """Trace entry model."""
-    __tablename__ = "trace_entries"
-    
-    id = Column(String, primary_key=True)
-    tool_name = Column(String)
-    arguments = Column(Text)
-    result = Column(Text)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    duration_ms = Column(Integer)
-    # 'metadata' is a reserved attribute name in SQLAlchemy's Declarative API
-    # Use a different Python attribute while keeping the DB column named 'metadata'
-    metadata_json = Column("metadata", Text)
 
 
 class CacheManager:
