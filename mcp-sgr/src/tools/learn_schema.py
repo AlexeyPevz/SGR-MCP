@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 async def learn_schema_tool(arguments: Dict[str, Any], llm_client: LLMClient) -> Dict[str, Any]:
     """Learn a new SGR schema from provided examples.
 
-    This is a roadmap feature - current implementation provides basic functionality.
+    Analyzes examples to extract patterns and creates a custom schema.
 
     Args:
         arguments: Tool arguments containing examples and task_type

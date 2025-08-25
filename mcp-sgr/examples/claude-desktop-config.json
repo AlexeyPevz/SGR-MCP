@@ -1,0 +1,19 @@
+{
+  "mcpServers": {
+    "sgr-reasoning": {
+      "command": "python",
+      "args": ["-m", "src.server"],
+      "cwd": "/path/to/mcp-sgr",
+      "env": {
+        "PYTHONPATH": "/path/to/mcp-sgr",
+        "LLM_BACKENDS": "custom",
+        "CUSTOM_LLM_URL": "http://localhost:8001/v1/chat/completions",
+        "GEMINI_API_KEY": "your-gemini-api-key",
+        "SGR_BUDGET_DEPTH": "lite",
+        "CACHE_ENABLED": "true",
+        "CACHE_STORE": "sqlite:///./data/cache.db",
+        "LOG_LEVEL": "INFO"
+      }
+    }
+  }
+}

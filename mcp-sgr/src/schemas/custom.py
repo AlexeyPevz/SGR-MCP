@@ -6,6 +6,7 @@ from typing import Any, Dict, List, Optional
 import jsonschema
 
 from .base import BaseSchema, SchemaField, ValidationResult
+from .builder import SchemaBuilder
 
 
 class CustomSchema(BaseSchema):

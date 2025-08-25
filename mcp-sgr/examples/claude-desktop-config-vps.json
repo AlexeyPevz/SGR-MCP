@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "sgr-reasoning-remote": {
+      "command": "node",
+      "args": ["/path/to/mcp-sgr/examples/mcp-http-bridge.js"],
+      "env": {
+        "SGR_HTTP_URL": "http://your-vps-ip:8080",
+        "SGR_API_KEY": "your-optional-api-key"
+      }
+    }
+  }
+}
