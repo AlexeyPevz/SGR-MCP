@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List
 
 from ..schemas import SCHEMA_REGISTRY
-from ..schemas.base import BaseSchema
+from ..schemas.base import BaseSchema, ValidationResult
 from ..schemas.custom import CustomSchema
 from ..utils.cache import CacheManager
 from ..utils.llm_client import LLMClient
@@ -84,7 +84,10 @@ async def apply_sgr_tool(
         reasoning = await _generate_reasoning(task, context, schema, budget, llm_client, backend=backend)
 
         # Validate reasoning
-        validation_result = schema.validate(reasoning)
+        if budget == "lite" and getattr(schema, "schema_id", "") == "summarization":
+            validation_result = _validate_lite_summarization(reasoning)
+        else:
+            validation_result = schema.validate(reasoning)
 
         # If lite and invalid, try salvage by auto-filling minimal required fields, then revalidate
         if budget == "lite" and not validation_result.valid:
@@ -458,3 +461,67 @@ def _lite_salvage_autofill(reasoning: Dict[str, Any], schema_json: Dict[str, Any
             reasoning[key].append("auto")
 
     return reasoning
+
+
+def _validate_lite_summarization(data: Dict[str, Any]) -> ValidationResult:
+    """Lenient validation for summarization in lite mode.
+
+    Requirements (minimal):
+    - purpose.goal (non-empty string)
+    - content_analysis.source_type (non-empty string)
+    - key_points: at least 1 item with 'point'
+    - summary.executive_summary (>= 20 chars)
+    Confidence starts at 0.6, penalties for missing/short, +0.2 if detailed_summary present.
+    """
+    try:
+        errors: List[str] = []
+        warnings: List[str] = []
+
+        def get(obj: Dict[str, Any], path: str):
+            cur = obj
+            for part in path.split('.'):
+                if isinstance(cur, dict) and part in cur:
+                    cur = cur[part]
+                else:
+                    return None
+            return cur
+
+        confidence = 0.6
+
+        goal = get(data, 'purpose.goal')
+        if not isinstance(goal, str) or not goal.strip():
+            errors.append("purpose.goal is required")
+        
+        stype = get(data, 'content_analysis.source_type')
+        if not isinstance(stype, str) or not stype.strip():
+            errors.append("content_analysis.source_type is required")
+
+        kps = data.get('key_points')
+        if not isinstance(kps, list) or len(kps) == 0:
+            errors.append("key_points requires at least one item")
+        else:
+            if not (isinstance(kps[0], dict) and isinstance(kps[0].get('point'), str) and kps[0]['point'].strip()):
+                warnings.append("first key_point.point is weak or missing")
+                confidence -= 0.05
+
+        exec_sum = get(data, 'summary.executive_summary')
+        if not isinstance(exec_sum, str) or len(exec_sum.strip()) < 20:
+            errors.append("summary.executive_summary too short")
+        else:
+            if len(exec_sum) < 60:
+                warnings.append("executive_summary could be longer")
+                confidence -= 0.05
+
+        det_sum = get(data, 'summary.detailed_summary')
+        if isinstance(det_sum, str) and len(det_sum.strip()) >= 100:
+            confidence += 0.2
+        else:
+            warnings.append("missing or short detailed_summary")
+
+        if errors:
+            return ValidationResult(valid=False, errors=errors, warnings=warnings, confidence=0.0)
+
+        confidence = max(0.5, min(0.9, confidence))
+        return ValidationResult(valid=True, errors=[], warnings=warnings, confidence=confidence)
+    except Exception:
+        return ValidationResult(valid=False, errors=["lite summarization validation error"], confidence=0.0)
