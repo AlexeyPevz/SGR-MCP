@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from ..schemas import SCHEMA_REGISTRY
-from ..schemas.base import BudgetDepth
+from ..schemas.base import BudgetDepth, BaseSchema
 from ..schemas.custom import CustomSchema
 from ..utils.cache import CacheManager
 from ..utils.llm_client import LLMClient
@@ -67,6 +67,7 @@ async def apply_sgr_tool(
             logger.info(f"Auto-detected schema type: {schema_type}")
 
         # Get or create schema
+        schema: BaseSchema
         if schema_type == "custom" and custom_schema_def:
             schema = CustomSchema(custom_schema_def)
         else:

@@ -11,7 +11,7 @@ from pathlib import Path
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
 from mcp.types import (
-    Tool, Resource, TextContent, ImageContent, EmbeddedResource,
+    Tool, Resource, TextResourceContents,
     ListResourcesResult, ReadResourceResult, ListToolsResult, CallToolResult
 )
 from pydantic import BaseModel, Field
@@ -195,13 +195,13 @@ class SGRServer:
                     raise ValueError(f"Unknown tool: {name}")
                 
                 return CallToolResult(
-                    content=[TextContent(type="text", text=json.dumps(result, indent=2))]
+                    content=[TextResourceContents(uri="sgr://tool-result", text=json.dumps(result, indent=2))]
                 )
                 
             except Exception as e:
                 logger.error(f"Tool execution failed: {e}", exc_info=True)
                 return CallToolResult(
-                    content=[TextContent(type="text", text=json.dumps({
+                    content=[TextResourceContents(uri="sgr://tool-error", text=json.dumps({
                         "error": str(e),
                         "type": type(e).__name__
                     }))]
@@ -249,7 +249,7 @@ class SGRServer:
                     }
                 
                 content = json.dumps(schemas, indent=2)
-                return ReadResourceResult(contents=[TextContent(type="text", text=content)])
+                return ReadResourceResult(contents=[TextResourceContents(uri="sgr://schemas", text=content)])
             
             elif uri == "sgr://policy":
                 # Return current policy
@@ -268,13 +268,13 @@ router:
     max_attempts: 2
     backoff: 0.8
 """
-                return ReadResourceResult(contents=[TextContent(type="text", text=content)])
+                return ReadResourceResult(contents=[TextResourceContents(uri="sgr://policy", text=content)])
             
             elif uri == "sgr://traces":
                 # Return recent traces
                 traces = await self.cache_manager.get_recent_traces(limit=10)
                 content = json.dumps(traces, indent=2)
-                return ReadResourceResult(contents=[TextContent(type="text", text=content)])
+                return ReadResourceResult(contents=[TextResourceContents(uri="sgr://traces", text=content)])
             
             else:
                 raise ValueError(f"Unknown resource: {uri}")

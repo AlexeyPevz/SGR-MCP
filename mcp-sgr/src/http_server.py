@@ -286,8 +286,8 @@ async def list_schemas(
     from .schemas import SCHEMA_REGISTRY
     
     schemas: Dict[str, Any] = {}
-    for name, schema_class in SCHEMA_REGISTRY.items():
-        schema = schema_class()
+    for name, schema_factory in SCHEMA_REGISTRY.items():
+        schema = schema_factory()
         schemas[name] = {
             "description": schema.get_description(),
             "fields": [f.name for f in schema.get_fields()],
