@@ -79,8 +79,8 @@ async def learn_schema_tool(arguments: Dict[str, Any], llm_client: LLMClient) ->
         validation_results: List[bool] = []
         for example in examples:
             if "expected_reasoning" in example:
-                result = custom_schema.validate(example["expected_reasoning"])
-                validation_results.append(result.valid)
+                validation = custom_schema.validate(example["expected_reasoning"])
+                validation_results.append(validation.valid)
 
         validation_rate = (
             sum(validation_results) / len(validation_results) if validation_results else 0
