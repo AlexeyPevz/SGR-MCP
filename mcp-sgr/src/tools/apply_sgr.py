@@ -44,8 +44,16 @@ async def apply_sgr_tool(
         custom_schema_def = arguments.get("custom_schema")
         budget = arguments.get("budget", "lite")
         
-        # Check cache first
-        cache_key = f"sgr:{schema_type}:{hash(task)}"
+        # Check cache first (stable key)
+        import hashlib
+        payload_for_key = {
+            "task": task,
+            "context": context,
+            "schema_type": schema_type,
+            "budget": budget,
+        }
+        key_str = json.dumps(payload_for_key, sort_keys=True, ensure_ascii=False)
+        cache_key = f"sgr:{hashlib.sha256(key_str.encode('utf-8')).hexdigest()}"
         cached_result = await cache_manager.get(cache_key)
         if cached_result and budget != "full":
             logger.info(f"Cache hit for {cache_key}")

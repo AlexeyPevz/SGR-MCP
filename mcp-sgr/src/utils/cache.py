@@ -170,7 +170,7 @@ class CacheManager:
             
             return True
             
-        except (json.JSONEncodeError, aiosqlite.Error) as e:
+        except (TypeError, ValueError, aiosqlite.Error) as e:
             logger.error(f"Cache set error for key {key}: {e}")
             return False
         except Exception as e:
