@@ -250,7 +250,7 @@ class ModelRouter:
             return TaskType.CODE_GENERATION
         elif any(word in task_lower for word in ["summarize", "summary", "brief", "overview", "суммариз", "резюме", "кратко", "обзор"]):
             return TaskType.SUMMARIZATION
-        elif any(word in task_lower for word in ["search", "find", "locate", "lookup", "искать", "найти", "поиск"]):
+        elif any(word in task_lower for word in ["search", "find", "locate", "lookup", "искать", "найти", "найди", "поиск"]):
             return TaskType.SEARCH
         else:
             return TaskType.GENERAL
