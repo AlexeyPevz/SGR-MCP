@@ -42,6 +42,7 @@ async def apply_sgr_tool(
         schema_type = arguments.get("schema_type", "auto")
         custom_schema_def = arguments.get("custom_schema")
         budget = arguments.get("budget", "lite")
+        backend = arguments.get("backend")
 
         # Check cache first (stable key)
         import hashlib
@@ -76,7 +77,7 @@ async def apply_sgr_tool(
             schema = schema_factory()
 
         # Generate reasoning based on budget
-        reasoning = await _generate_reasoning(task, context, schema, budget, llm_client)
+        reasoning = await _generate_reasoning(task, context, schema, budget, llm_client, backend=backend)
 
         # Validate reasoning
         validation_result = schema.validate(reasoning)
@@ -151,7 +152,12 @@ Return only the schema type name that best fits this task."""
 
 
 async def _generate_reasoning(
-    task: str, context: Dict[str, Any], schema: Any, budget: str, llm_client: LLMClient
+    task: str,
+    context: Dict[str, Any],
+    schema: Any,
+    budget: str,
+    llm_client: LLMClient,
+    backend: str | None = None,
 ) -> Dict[str, Any]:
     """Generate reasoning based on schema and budget."""
 
@@ -195,6 +201,7 @@ Take your time to provide comprehensive reasoning."""
             prompt,
             temperature=0.3 if budget == "full" else 0.1,
             max_tokens=4000 if budget == "full" else 2000,
+            backend=backend,
         )
     except Exception as e:
         logger.error(f"LLM generation failed, falling back to minimal structure: {e}")

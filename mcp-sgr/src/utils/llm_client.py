@@ -28,7 +28,21 @@ class LLMClient:
     def __init__(self):
         """Initialize LLM client with configured backends."""
         self.backends = self._parse_backends()
-        self.default_backend = os.getenv("ROUTER_DEFAULT_BACKEND", "ollama")
+        # Prefer explicit override; else choose based on available credentials/backends
+        explicit_backend = os.getenv("ROUTER_DEFAULT_BACKEND")
+        if explicit_backend:
+            self.default_backend = explicit_backend
+        else:
+            # If OpenRouter key present and backend enabled, prefer OpenRouter
+            if os.getenv("OPENROUTER_API_KEY") and any(b.value == "openrouter" for b in self.backends):
+                self.default_backend = "openrouter"
+            elif any(b.value == "ollama" for b in self.backends):
+                self.default_backend = "ollama"
+            elif any(b.value == "custom" for b in self.backends):
+                self.default_backend = "custom"
+            else:
+                # Fallback
+                self.default_backend = "openrouter" if os.getenv("OPENROUTER_API_KEY") else "ollama"
 
         # Backend configurations
         self.ollama_host = os.getenv("OLLAMA_HOST", "http://localhost:11434")
