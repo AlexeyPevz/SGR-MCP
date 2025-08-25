@@ -209,10 +209,13 @@ Task: {task}
 
 {f"Context: {json.dumps(context, indent=2)}" if context else ""}
 
-Please provide your reasoning in the following JSON structure:
+Please provide your reasoning strictly as valid JSON matching this schema:
 {json.dumps(self.to_json_schema(), indent=2)}
 
-Focus on being thorough and specific. Each field should contain meaningful analysis.
-Return only valid JSON that matches the schema exactly."""
+IMPORTANT INSTRUCTIONS:
+- Return ONLY the JSON object, with no prose, no explanations, no code fences
+- Ensure it validates against the schema (types, required fields)
+- Be thorough and specific in each field
+"""
 
         return prompt

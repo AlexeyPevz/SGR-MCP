@@ -28,8 +28,8 @@ class CacheManager:
         self.trace_store = os.getenv("TRACE_STORE", "sqlite:///./data/traces.db")
         self.trace_retention_days = int(os.getenv("TRACE_RETENTION_DAYS", "7"))
 
-        self._cache_db = None
-        self._trace_db = None
+        self._cache_db: Optional[aiosqlite.Connection] = None
+        self._trace_db: Optional[aiosqlite.Connection] = None
         self._initialized = False
 
     async def initialize(self):
@@ -78,6 +78,18 @@ class CacheManager:
 			"""
             )
             await self._trace_db.commit()
+
+            # Helpful indexes for reads/cleanup
+            try:
+                await self._trace_db.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_trace_created_at ON trace_entries(created_at)"
+                )
+                await self._trace_db.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_trace_tool_created ON trace_entries(tool_name, created_at)"
+                )
+                await self._trace_db.commit()
+            except Exception as e:
+                logger.warning(f"Trace index creation failed: {e}")
 
         self._initialized = True
         logger.info("Cache manager initialized")
@@ -214,7 +226,7 @@ class CacheManager:
             return False
 
     async def get_recent_traces(
-        self, limit: int = 10, tool_name: Optional[str] = None
+        self, limit: int = 10, offset: int = 0, tool_name: Optional[str] = None
     ) -> List[Dict[str, Any]]:
         """Get recent trace entries."""
         if not self.trace_enabled or not self._trace_db:
@@ -222,7 +234,7 @@ class CacheManager:
 
         try:
             query = """SELECT id, tool_name, arguments, result, created_at, 
-						      duration_ms, metadata 
+					      duration_ms, metadata 
 				       FROM trace_entries"""
             params: List[Any] = []
 
@@ -230,8 +242,9 @@ class CacheManager:
                 query += " WHERE tool_name = ?"
                 params.append(tool_name)
 
-            query += " ORDER BY created_at DESC LIMIT ?"
+            query += " ORDER BY created_at DESC LIMIT ? OFFSET ?"
             params.append(limit)
+            params.append(max(0, offset))
 
             traces: List[Dict[str, Any]] = []
             async with self._trace_db.execute(query, params) as cursor:
@@ -294,7 +307,11 @@ class CacheManager:
                 stats["total_hits"] = (await cursor.fetchone())[0] or 0
 
             # Hit rate
-            if isinstance(stats.get("total_hits"), int) and isinstance(stats.get("total_entries"), int) and stats["total_hits"] > 0:
+            if (
+                isinstance(stats.get("total_hits"), int)
+                and isinstance(stats.get("total_entries"), int)
+                and stats["total_hits"] > 0
+            ):
                 denominator = stats["total_hits"] + stats["total_entries"]
                 stats["hit_rate"] = (stats["total_hits"] / denominator) if denominator > 0 else 0.0
             else:
