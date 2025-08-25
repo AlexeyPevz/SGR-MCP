@@ -16,8 +16,6 @@ SCHEMA_REGISTRY: Dict[str, Type[BaseSchema]] = {
     "decision": DecisionSchema,
     "code_generation": CodeGenerationSchema,
     "summarization": SummarizationSchema,
-    "rag_analysis": RAGAnalysisSchema,
-    "rag_validation": RAGValidationSchema,
 }
 
 __all__ = [
