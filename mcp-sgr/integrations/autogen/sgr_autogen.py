@@ -5,12 +5,28 @@ Provides SGR-enhanced agents and conversation patterns for AutoGen.
 
 import asyncio
 from typing import Any, Dict, List, Optional, Union, Callable
-from autogen import Agent, ConversableAgent, AssistantAgent, UserProxyAgent
 
-from ...src.tools import apply_sgr_tool, wrap_agent_call_tool
-from ...src.utils.llm_client import LLMClient
-from ...src.utils.cache import CacheManager
-from ...src.utils.telemetry import TelemetryManager
+# Note: This is a template. Install autogen with: pip install pyautogen
+try:
+    from autogen import Agent, ConversableAgent, AssistantAgent, UserProxyAgent
+except ImportError:
+    # Stub classes for when autogen is not installed
+    class Agent:
+        pass
+    class ConversableAgent:
+        def __init__(self, *args, **kwargs):
+            pass
+        def generate_reply(self, *args, **kwargs):
+            return ""
+
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+
+from src.tools import apply_sgr_tool, wrap_agent_call_tool
+from src.utils.llm_client import LLMClient
+from src.utils.cache import CacheManager
+from src.utils.telemetry import TelemetryManager
 
 
 class SGRAgent(ConversableAgent):

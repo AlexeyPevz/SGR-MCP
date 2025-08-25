@@ -535,14 +535,15 @@ pytest --cov=src --cov-report=html
 
 ## Дорожная карта
 
-- [ ] LangChain/LangGraph middleware
-- [ ] AutoGen GroupChat wrapper
-- [ ] CrewAI per-agent SGR
-- [ ] Schema learning from examples
+- [x] LangChain/LangGraph middleware ✅
+- [x] AutoGen GroupChat wrapper ✅
+- [x] CrewAI per-agent SGR ✅
+- [x] Schema learning from examples ✅
 - [ ] Private/public schema catalog
 - [ ] Differential privacy for schemas
 - [ ] Advanced observability dashboard
-- [ ] A/B testing framework
+- [x] A/B testing framework ✅
+- [x] RAG integration ✅
 
 ## Вклад в проект
 
