@@ -197,10 +197,21 @@ Take your time to provide comprehensive reasoning."""
 
     # Generate reasoning
     try:
+        system_prompt = (
+            "You are a JSON-only assistant. Respond with STRICTLY valid JSON matching the"
+            " provided schema. Requirements:\n"
+            "- Do NOT include markdown fences or extra text.\n"
+            "- Fill ALL required fields.\n"
+            "- For required arrays, include at least one meaningful item (no empty arrays).\n"
+            "- Avoid empty strings and placeholders like 'N/A'.\n"
+            "- If information is missing, make reasonable, safe assumptions and state them succinctly.\n"
+            "- Keep content specific and actionable."
+        )
         response = await llm_client.generate(
             prompt,
             temperature=0.3 if budget == "full" else 0.1,
             max_tokens=4000 if budget == "full" else 2000,
+            system_prompt=system_prompt,
             backend=backend,
         )
     except Exception as e:
