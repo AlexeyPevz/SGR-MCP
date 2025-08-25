@@ -244,15 +244,43 @@ Take your time to provide comprehensive reasoning."""
             "- If information is missing, make reasonable, safe assumptions and state them succinctly.\n"
             "- Keep content specific and actionable."
         )
-        response = await llm_client.generate(
-            prompt,
-            temperature=0.3 if budget == "full" else 0.1,
-            max_tokens=4000 if budget == "full" else 2000,
-            system_prompt=system_prompt,
-            backend=backend,
-            # Ask OpenRouter/OpenAI-compatible providers to return strict JSON
-            response_format={"type": "json_object"},
-        )
+        # Prefer structured outputs via json_schema; fallback to json_object
+        schema_json = None
+        try:
+            schema_json = schema.to_json_schema()
+        except Exception:
+            schema_json = None
+
+        try:
+            response = await llm_client.generate(
+                prompt,
+                temperature=0.3 if budget == "full" else 0.1,
+                max_tokens=4000 if budget == "full" else 2000,
+                system_prompt=system_prompt,
+                backend=backend,
+                response_format=(
+                    {
+                        "type": "json_schema",
+                        "json_schema": {
+                            "name": getattr(schema, "schema_id", "sgr_output"),
+                            "schema": schema_json,
+                            "strict": True,
+                        },
+                    }
+                    if schema_json
+                    else {"type": "json_object"}
+                ),
+            )
+        except Exception:
+            # Retry with plain json_object
+            response = await llm_client.generate(
+                prompt,
+                temperature=0.3 if budget == "full" else 0.1,
+                max_tokens=4000 if budget == "full" else 2000,
+                system_prompt=system_prompt,
+                backend=backend,
+                response_format={"type": "json_object"},
+            )
     except Exception as e:
         logger.error(f"LLM generation failed, falling back to minimal structure: {e}")
         # Fallback to minimal reasoning structure matching the schema shape
