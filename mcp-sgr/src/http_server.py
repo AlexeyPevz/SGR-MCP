@@ -21,6 +21,7 @@ from .tools import (
     learn_schema_tool
 )
 from .utils.logging_config import setup_logging
+from .utils.redact import PIIRedactor
 setup_logging()
 
 logger = logging.getLogger(__name__)
@@ -88,12 +89,13 @@ llm_client: Optional[LLMClient] = None
 cache_manager: Optional[CacheManager] = None
 telemetry_manager: Optional[TelemetryManager] = None
 rate_limiter: Optional[SimpleRateLimiter] = None
+pii_redactor: Optional[PIIRedactor] = None
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Manage application lifecycle."""
-    global llm_client, cache_manager, telemetry_manager, rate_limiter
+    global llm_client, cache_manager, telemetry_manager, rate_limiter, pii_redactor
     
     # Startup
     logger.info("Starting HTTP facade...")
@@ -108,6 +110,10 @@ async def lifespan(app: FastAPI):
     rate_enabled = os.getenv("RATE_LIMIT_ENABLED", "false").lower() == "true"
     max_rpm = int(os.getenv("RATE_LIMIT_MAX_RPM", "120"))
     rate_limiter = SimpleRateLimiter(rate_enabled, max_rpm)
+    
+    # PII redactor
+    pii_enabled = os.getenv("PII_REDACT", "true").lower() == "true"
+    pii_redactor = PIIRedactor(enabled=pii_enabled)
     
     yield
     
@@ -145,7 +151,7 @@ app.add_middleware(
 async def verify_api_key(x_api_key: Optional[str] = Header(default=None)) -> bool:
     """Verify API key if configured or required."""
     expected_key = os.getenv("HTTP_AUTH_TOKEN")
-    require_auth = os.getenv("HTTP_REQUIRE_AUTH", "false").lower() == "true"
+    require_auth = os.getenv("HTTP_REQUIRE_AUTH", "true").lower() == "true"
     if not require_auth and not expected_key:
         return True  # No auth enforced
     if expected_key and x_api_key == expected_key:
@@ -313,6 +319,7 @@ async def get_cache_stats(
 @app.get("/v1/traces")
 async def get_traces(
     limit: int = 10,
+    offset: int = 0,
     tool_name: Optional[str] = None,
     authorized: bool = Depends(verify_api_key),
     _: bool = Depends(verify_rate_limit)
@@ -324,7 +331,17 @@ async def get_traces(
     if not cache_manager:
         return []
     
-    return await cache_manager.get_recent_traces(limit=limit, tool_name=tool_name)
+    traces = await cache_manager.get_recent_traces(limit=limit, offset=offset, tool_name=tool_name)
+    
+    # Apply PII redaction if enabled
+    if pii_redactor and pii_redactor.enabled:
+        redacted_traces = []
+        for t in traces:
+            redacted, _ = pii_redactor.redact_dict(t)
+            redacted_traces.append(redacted)
+        return redacted_traces
+    
+    return traces
 
 
 def run_http_server(host: str = "127.0.0.1", port: int = 8080):
