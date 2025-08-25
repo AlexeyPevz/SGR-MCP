@@ -226,8 +226,55 @@ class TelemetryManager:
             unit: Unit of measurement
             labels: Metric labels
         """
-        # TODO: Implement metrics when OpenTelemetry metrics are needed
-        logger.debug(f"Metric recorded: {name}={value}{unit} " f"(labels: {labels})")
+        # Record metric using OpenTelemetry
+        if not self.enabled:
+            return
+            
+        try:
+            from opentelemetry import metrics
+            
+            if not hasattr(self, '_meter'):
+                self._meter = metrics.get_meter("mcp-sgr", "1.0.0")
+                self._counters = {}
+                self._histograms = {}
+                self._gauges = {}
+            
+            # Determine metric type and record
+            if name.endswith("_total") or name.endswith("_count"):
+                # Counter
+                if name not in self._counters:
+                    self._counters[name] = self._meter.create_counter(
+                        name=name,
+                        description=f"Counter for {name}",
+                        unit=unit
+                    )
+                self._counters[name].add(value, labels)
+                
+            elif name.endswith("_duration") or name.endswith("_latency"):
+                # Histogram
+                if name not in self._histograms:
+                    self._histograms[name] = self._meter.create_histogram(
+                        name=name,
+                        description=f"Histogram for {name}",
+                        unit=unit
+                    )
+                self._histograms[name].record(value, labels)
+                
+            else:
+                # Gauge (up-down counter)
+                if name not in self._gauges:
+                    self._gauges[name] = self._meter.create_up_down_counter(
+                        name=name,
+                        description=f"Gauge for {name}",
+                        unit=unit
+                    )
+                self._gauges[name].add(value - self._last_gauge_values.get(name, 0), labels)
+                self._last_gauge_values[name] = value
+                
+        except ImportError:
+            logger.debug(f"OpenTelemetry metrics not available. Metric: {name}={value}{unit}")
+        except Exception as e:
+            logger.error(f"Failed to record metric {name}: {e}")
 
     async def close(self):
         """Close telemetry and flush remaining data."""
