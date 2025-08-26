@@ -155,22 +155,53 @@ llm_client: Optional[LLMClient] = None
 cache_manager: Optional[CacheManager] = None
 telemetry_manager: Optional[TelemetryManager] = None
 rate_limiter: Optional[SimpleRateLimiter] = None
+rbac_manager: Optional['RBACManager'] = None
+audit_logger: Optional['AuditLogger'] = None
+adaptive_router: Optional['AdaptiveRouter'] = None
+smart_cache: Optional['SmartCacheManager'] = None
+cost_optimizer: Optional['CostOptimizer'] = None
 _redis_client = None  # type: ignore[var-annotated]
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Manage application lifecycle."""
-    global llm_client, cache_manager, telemetry_manager, rate_limiter, _redis_client
+    global llm_client, cache_manager, telemetry_manager, rate_limiter, rbac_manager, audit_logger, _redis_client
 
     # Startup
     logger.info("Starting HTTP facade...")
     llm_client = LLMClient()
     cache_manager = CacheManager()
     telemetry_manager = TelemetryManager()
+    
+    # Initialize auth system
+    from .auth.rbac import RBACManager
+    from .auth.audit import AuditLogger
+    rbac_manager = RBACManager(cache_manager)
+    audit_logger = AuditLogger(cache_manager)
+    
+    # Initialize AI optimization (if enabled)
+    global adaptive_router, smart_cache, cost_optimizer
+    ai_optimization_enabled = os.getenv("AI_OPTIMIZATION_ENABLED", "true").lower() == "true"
+    
+    if ai_optimization_enabled:
+        from .ai_optimization.adaptive_router import AdaptiveRouter
+        from .ai_optimization.smart_cache import SmartCacheManager
+        from .ai_optimization.cost_optimizer import CostOptimizer
+        
+        adaptive_router = AdaptiveRouter(cache_manager)
+        smart_cache = SmartCacheManager(cache_manager)
+        cost_optimizer = CostOptimizer(cache_manager)
+        
+        await adaptive_router.initialize()
+        await smart_cache.initialize()
+        await cost_optimizer.initialize()
+        
+        logger.info("AI optimization modules initialized")
 
     await cache_manager.initialize()
     await telemetry_manager.initialize()
+    await audit_logger.initialize()
 
     # Rate limiter (memory or redis)
     rate_enabled = os.getenv("RATE_LIMIT_ENABLED", "false").lower() == "true"
@@ -208,6 +239,8 @@ async def lifespan(app: FastAPI):
 
     # Shutdown
     logger.info("Shutting down HTTP facade...")
+    if audit_logger:
+        await audit_logger.close()
     if llm_client:
         await llm_client.close()
     if cache_manager:
@@ -319,47 +352,125 @@ app.add_middleware(
 )
 
 
-# Optional API key authentication
-async def verify_api_key(x_api_key: Optional[str] = Header(default=None), authorization: Optional[str] = Header(default=None)) -> bool:
-    """Verify auth based on configured mode: token (default) or jwt.
+# Enhanced authentication and authorization
+async def get_current_user(
+    x_api_key: Optional[str] = Header(default=None), 
+    authorization: Optional[str] = Header(default=None),
+    request: Request = None
+) -> tuple[Optional['User'], Optional['APIKey']]:
+    """Get current authenticated user and API key."""
+    if not rbac_manager:
+        return None, None
+    
+    require_auth = os.getenv("HTTP_REQUIRE_AUTH", "false").lower() == "true"
+    if not require_auth:
+        return None, None
+    
+    # Try API key authentication first
+    if x_api_key:
+        api_key = await rbac_manager.validate_api_key(x_api_key)
+        if api_key:
+            user = await rbac_manager.get_user(api_key.user_id)
+            if user and user.is_active:
+                # Log authentication event
+                if audit_logger:
+                    await audit_logger.log_authentication(
+                        action="api_key_used",
+                        organization_id=user.organization_id,
+                        user_id=user.id,
+                        api_key_id=api_key.id,
+                        ip_address=request.client.host if request and request.client else None,
+                        user_agent=request.headers.get("user-agent") if request else None
+                    )
+                return user, api_key
+        else:
+            # Log failed authentication
+            if audit_logger:
+                await audit_logger.log_authentication(
+                    action="api_key_invalid",
+                    organization_id="unknown",
+                    ip_address=request.client.host if request and request.client else None,
+                    error_message="Invalid API key"
+                )
+    
+    # Legacy token authentication (for backwards compatibility)
+    expected_key = os.getenv("HTTP_AUTH_TOKEN")
+    if expected_key and x_api_key == expected_key:
+        # Create a pseudo-user for legacy auth
+        return None, None  # Indicates legacy auth success
+    
+    return None, None
 
-    - token mode: uses x-api-key header and HTTP_AUTH_TOKEN
-    - jwt mode: checks Authorization: Bearer <token> against HTTP_JWT_SECRET (HS256)
-    Both modes may co-exist; passing either valid credential grants access.
-    """
+
+async def verify_api_key(
+    x_api_key: Optional[str] = Header(default=None), 
+    authorization: Optional[str] = Header(default=None),
+    request: Request = None
+) -> bool:
+    """Legacy API key verification for backwards compatibility."""
+    user, api_key = await get_current_user(x_api_key, authorization, request)
+    
+    # If we have a valid user/API key, allow access
+    if user and api_key:
+        return True
+    
+    # Check legacy auth
     require_auth = os.getenv("HTTP_REQUIRE_AUTH", "false").lower() == "true"
     if not require_auth:
         return True
-
-    # Token auth
+    
     expected_key = os.getenv("HTTP_AUTH_TOKEN")
     if expected_key and x_api_key == expected_key:
         return True
-
-    # JWT auth (optional)
-    mode = os.getenv("HTTP_AUTH_MODE", "token").lower()
-    if mode == "jwt" and authorization:
-        match = re.match(r"^Bearer\s+(.+)$", authorization.strip(), re.IGNORECASE)
-        if match:
-            token = match.group(1)
-            try:
-                secret = os.getenv("HTTP_JWT_SECRET")
-                if not secret:
-                    return False
-                options = {"verify_aud": False}
-                issuer = os.getenv("HTTP_JWT_ISSUER")
-                audience = os.getenv("HTTP_JWT_AUDIENCE")
-                kwargs = {"algorithms": ["HS256"], "options": options}
-                if issuer:
-                    kwargs["issuer"] = issuer
-                if audience:
-                    kwargs["audience"] = audience
-                jwt.decode(token, secret, **kwargs)  # type: ignore[arg-type]
-                return True
-            except Exception:
-                return False
-
+    
     return False
+
+
+async def require_permission(permission: 'Permission'):
+    """Dependency to require specific permission."""
+    async def check_permission(
+        user_and_key: tuple = Depends(get_current_user),
+        request: Request = None
+    ):
+        user, api_key = user_and_key
+        
+        # Legacy auth bypass
+        if not user and not api_key:
+            legacy_auth = await verify_api_key(request=request)
+            if legacy_auth:
+                return True
+        
+        if not user or not rbac_manager:
+            raise HTTPException(status_code=401, detail="Authentication required")
+        
+        # Check permission
+        has_permission = await rbac_manager.check_permission(
+            user.id, 
+            permission, 
+            api_key.id if api_key else None
+        )
+        
+        if not has_permission:
+            # Log permission denied
+            if audit_logger:
+                await audit_logger.log_action(
+                    action="permission_denied",
+                    resource_type="permission",
+                    organization_id=user.organization_id,
+                    user_id=user.id,
+                    api_key_id=api_key.id if api_key else None,
+                    ip_address=request.client.host if request and request.client else None,
+                    metadata={"required_permission": permission.value}
+                )
+            
+            raise HTTPException(
+                status_code=403, 
+                detail=f"Permission {permission.value} required"
+            )
+        
+        return user
+    
+    return check_permission
 
 
 async def verify_rate_limit(request: Request) -> bool:
@@ -689,6 +800,364 @@ async def redoc():
         title="MCP-SGR API Documentation",
         redoc_js_url="https://cdn.jsdelivr.net/npm/redoc@2.1.3/bundles/redoc.standalone.js",
     )
+
+
+# Admin endpoints for user and organization management
+@app.post("/v1/admin/organizations", tags=["admin"])
+async def create_organization(
+    org_data: dict,
+    user: 'User' = Depends(require_permission('Permission.ADMIN_ORGS'))
+):
+    """Create a new organization."""
+    if not rbac_manager:
+        raise HTTPException(status_code=503, detail="RBAC not initialized")
+    
+    try:
+        org = await rbac_manager.create_organization(
+            name=org_data["name"],
+            domain=org_data.get("domain"),
+            plan=org_data.get("plan", "free")
+        )
+        
+        if audit_logger:
+            await audit_logger.log_admin_action(
+                action="create_organization",
+                target_resource_type="organization",
+                target_resource_id=org.id,
+                organization_id=user.organization_id,
+                admin_user_id=user.id,
+                changes={"name": org.name, "plan": org.plan}
+            )
+        
+        return org.dict()
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.post("/v1/admin/users", tags=["admin"])
+async def create_user(
+    user_data: dict,
+    current_user: 'User' = Depends(require_permission('Permission.ADMIN_USERS'))
+):
+    """Create a new user."""
+    if not rbac_manager:
+        raise HTTPException(status_code=503, detail="RBAC not initialized")
+    
+    try:
+        from .auth.models import UserRole
+        
+        user = await rbac_manager.create_user(
+            email=user_data["email"],
+            name=user_data["name"],
+            organization_id=user_data["organization_id"],
+            role=UserRole(user_data.get("role", "viewer"))
+        )
+        
+        if audit_logger:
+            await audit_logger.log_admin_action(
+                action="create_user",
+                target_resource_type="user",
+                target_resource_id=user.id,
+                organization_id=current_user.organization_id,
+                admin_user_id=current_user.id,
+                changes={"email": user.email, "role": user.role.value}
+            )
+        
+        return user.dict()
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.post("/v1/admin/api-keys", tags=["admin"])
+async def create_api_key(
+    key_data: dict,
+    current_user: 'User' = Depends(require_permission('Permission.ADMIN_USERS'))
+):
+    """Create API key for a user."""
+    if not rbac_manager:
+        raise HTTPException(status_code=503, detail="RBAC not initialized")
+    
+    try:
+        from .auth.models import Permission
+        
+        permissions = []
+        if key_data.get("permissions"):
+            permissions = [Permission(p) for p in key_data["permissions"]]
+        
+        api_key, raw_key = await rbac_manager.create_api_key(
+            user_id=key_data["user_id"],
+            name=key_data["name"],
+            permissions=permissions,
+            expires_in_days=key_data.get("expires_in_days")
+        )
+        
+        if audit_logger:
+            await audit_logger.log_admin_action(
+                action="create_api_key",
+                target_resource_type="api_key",
+                target_resource_id=api_key.id,
+                organization_id=current_user.organization_id,
+                admin_user_id=current_user.id,
+                changes={"user_id": api_key.user_id, "name": api_key.name}
+            )
+        
+        return {
+            "api_key_id": api_key.id,
+            "api_key": raw_key,
+            "expires_at": api_key.expires_at.isoformat() if api_key.expires_at else None,
+            "permissions": [p.value for p in api_key.permissions]
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.get("/v1/admin/organizations/{org_id}/stats", tags=["admin"])
+async def get_organization_stats(
+    org_id: str,
+    user: 'User' = Depends(require_permission('Permission.ADMIN_ORGS'))
+):
+    """Get organization statistics."""
+    if not rbac_manager:
+        raise HTTPException(status_code=503, detail="RBAC not initialized")
+    
+    # Check if user can access this org (admin can see all, others only their own)
+    if user.role != 'UserRole.SUPER_ADMIN' and user.organization_id != org_id:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    stats = await rbac_manager.get_organization_stats(org_id)
+    if not stats:
+        raise HTTPException(status_code=404, detail="Organization not found")
+    
+    return stats
+
+
+@app.get("/v1/admin/audit-logs", tags=["admin"])
+async def get_audit_logs(
+    start_time: Optional[str] = None,
+    end_time: Optional[str] = None,
+    action: Optional[str] = None,
+    user_id: Optional[str] = None,
+    limit: int = 100,
+    current_user: 'User' = Depends(require_permission('Permission.ADMIN_SYSTEM'))
+):
+    """Get audit logs for organization."""
+    if not audit_logger:
+        raise HTTPException(status_code=503, detail="Audit logging not initialized")
+    
+    try:
+        # Parse time filters
+        start_dt = datetime.fromisoformat(start_time) if start_time else None
+        end_dt = datetime.fromisoformat(end_time) if end_time else None
+        
+        logs = await audit_logger.search_logs(
+            organization_id=current_user.organization_id,
+            start_time=start_dt,
+            end_time=end_dt,
+            action=action,
+            user_id=user_id,
+            limit=limit
+        )
+        
+        return [log.dict() for log in logs]
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.get("/v1/admin/security-events", tags=["admin"])
+async def get_security_events(
+    hours: int = 24,
+    current_user: 'User' = Depends(require_permission('Permission.ADMIN_SYSTEM'))
+):
+    """Get security events for the last N hours."""
+    if not audit_logger:
+        raise HTTPException(status_code=503, detail="Audit logging not initialized")
+    
+    events = await audit_logger.get_security_events(
+        organization_id=current_user.organization_id,
+        hours=hours
+    )
+    
+    return [event.dict() for event in events]
+
+
+@app.get("/v1/profile", tags=["users"])
+async def get_user_profile(
+    user_and_key: tuple = Depends(get_current_user)
+):
+    """Get current user profile."""
+    user, api_key = user_and_key
+    
+    if not user:
+        # Legacy auth fallback
+        return {"message": "Legacy authentication - no profile available"}
+    
+    if not rbac_manager:
+        raise HTTPException(status_code=503, detail="RBAC not initialized")
+    
+    stats = await rbac_manager.get_user_stats(user.id)
+    permissions = await rbac_manager.get_user_permissions(user.id)
+    
+    return {
+        "user": user.dict(),
+        "api_key": api_key.dict() if api_key else None,
+        "stats": stats,
+        "permissions": [p.value for p in permissions]
+    }
+
+
+# AI Optimization endpoints
+@app.get("/v1/ai/routing-stats", tags=["ai-optimization"])
+async def get_routing_stats(
+    authorized: bool = Depends(verify_api_key),
+    _: bool = Depends(verify_rate_limit)
+):
+    """Get adaptive routing statistics."""
+    if not authorized:
+        raise HTTPException(status_code=401, detail="Invalid API key")
+    
+    if not adaptive_router:
+        return {"message": "Adaptive routing not enabled"}
+    
+    return await adaptive_router.get_routing_stats()
+
+
+@app.get("/v1/ai/cache-stats", tags=["ai-optimization"])
+async def get_smart_cache_stats(
+    authorized: bool = Depends(verify_api_key),
+    _: bool = Depends(verify_rate_limit)
+):
+    """Get smart cache statistics."""
+    if not authorized:
+        raise HTTPException(status_code=401, detail="Invalid API key")
+    
+    if not smart_cache:
+        return {"message": "Smart cache not enabled"}
+    
+    return await smart_cache.get_cache_stats()
+
+
+@app.post("/v1/ai/cache/preload", tags=["ai-optimization"])
+async def preload_cache(
+    authorized: bool = Depends(verify_api_key),
+    _: bool = Depends(verify_rate_limit)
+):
+    """Trigger predictive cache preloading."""
+    if not authorized:
+        raise HTTPException(status_code=401, detail="Invalid API key")
+    
+    if not smart_cache:
+        raise HTTPException(status_code=503, detail="Smart cache not enabled")
+    
+    preloaded_count = await smart_cache.preload_predicted_keys()
+    return {"preloaded_keys": preloaded_count}
+
+
+@app.get("/v1/ai/cost-insights", tags=["ai-optimization"])
+async def get_cost_insights(
+    user_and_key: tuple = Depends(get_current_user)
+):
+    """Get cost insights for organization."""
+    user, api_key = user_and_key
+    
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    if not cost_optimizer:
+        return {"message": "Cost optimization not enabled"}
+    
+    return await cost_optimizer.get_cost_insights(user.organization_id)
+
+
+@app.post("/v1/ai/cost/budget", tags=["ai-optimization"])
+async def set_cost_budget(
+    budget_data: dict,
+    user: 'User' = Depends(require_permission('Permission.ADMIN_BILLING'))
+):
+    """Set monthly cost budget for organization."""
+    if not cost_optimizer:
+        raise HTTPException(status_code=503, detail="Cost optimization not enabled")
+    
+    monthly_budget = budget_data.get("monthly_budget")
+    if not monthly_budget or monthly_budget <= 0:
+        raise HTTPException(status_code=400, detail="Valid monthly_budget required")
+    
+    await cost_optimizer.set_budget(user.organization_id, monthly_budget)
+    
+    return {"message": f"Budget set to ${monthly_budget:.2f}/month"}
+
+
+@app.post("/v1/ai/model-recommendation", tags=["ai-optimization"])
+async def get_model_recommendation(
+    request_data: dict,
+    user_and_key: tuple = Depends(get_current_user)
+):
+    """Get AI-powered model recommendation."""
+    user, api_key = user_and_key
+    
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    if not cost_optimizer or not adaptive_router:
+        raise HTTPException(status_code=503, detail="AI optimization not enabled")
+    
+    try:
+        from .ai_optimization.cost_optimizer import OptimizationStrategy
+        
+        # Extract parameters
+        task_complexity = request_data.get("task_complexity", "medium")
+        quality_requirement = request_data.get("quality_requirement", 0.7)
+        latency_requirement = request_data.get("latency_requirement", 5000)
+        strategy = OptimizationStrategy(request_data.get("strategy", "balanced"))
+        available_models = request_data.get("available_models", [
+            ("openrouter", "meta-llama/llama-3.1-8b-instruct"),
+            ("openrouter", "qwen/qwen-2.5-72b-instruct"),
+            ("ollama", "llama3.1:8b")
+        ])
+        
+        backend, model, details = await cost_optimizer.recommend_model(
+            task_complexity=task_complexity,
+            quality_requirement=quality_requirement,
+            latency_requirement=latency_requirement,
+            organization_id=user.organization_id,
+            available_models=available_models,
+            strategy=strategy
+        )
+        
+        return {
+            "recommended_backend": backend,
+            "recommended_model": model,
+            "recommendation_details": details
+        }
+    
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.get("/v1/ai/optimization-stats", tags=["ai-optimization"])
+async def get_ai_optimization_stats(
+    user: 'User' = Depends(require_permission('Permission.METRICS_READ'))
+):
+    """Get comprehensive AI optimization statistics."""
+    stats = {
+        "adaptive_routing": {},
+        "smart_cache": {},
+        "cost_optimization": {},
+        "enabled_features": []
+    }
+    
+    if adaptive_router:
+        stats["adaptive_routing"] = await adaptive_router.get_routing_stats()
+        stats["enabled_features"].append("adaptive_routing")
+    
+    if smart_cache:
+        stats["smart_cache"] = await smart_cache.get_cache_stats()
+        stats["enabled_features"].append("smart_cache")
+    
+    if cost_optimizer:
+        stats["cost_optimization"] = await cost_optimizer.get_optimizer_stats()
+        stats["enabled_features"].append("cost_optimization")
+    
+    return stats
 
 
 def run_http_server(host: str = "127.0.0.1", port: int = 8080):
