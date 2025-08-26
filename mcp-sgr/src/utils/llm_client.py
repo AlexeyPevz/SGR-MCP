@@ -55,10 +55,23 @@ class LLMClient:
 
         self.custom_url = os.getenv("CUSTOM_LLM_URL")
 
-        # Request session
+        # Connection pooling and session management
         self._session = None
-        # Timeouts
+        self._session_lock = asyncio.Lock()
+        
+        # Connection pool settings
+        self.max_connections = int(os.getenv("LLM_MAX_CONNECTIONS", "100"))
+        self.max_connections_per_host = int(os.getenv("LLM_MAX_CONNECTIONS_PER_HOST", "30"))
+        
+        # Timeouts and retry settings
         self.request_timeout_seconds = float(os.getenv("LLM_REQUEST_TIMEOUT_SECONDS", "120"))
+        self.connection_timeout = float(os.getenv("LLM_CONNECTION_TIMEOUT", "10"))
+        self.retry_attempts = int(os.getenv("LLM_RETRY_ATTEMPTS", "3"))
+        
+        # Performance monitoring
+        self._request_count = 0
+        self._error_count = 0
+        self._total_response_time = 0.0
 
     def _parse_backends(self) -> List[LLMBackend]:
         """Parse enabled backends from environment."""
@@ -73,10 +86,40 @@ class LLMClient:
         return backends or [LLMBackend.OLLAMA]
 
     async def _get_session(self) -> aiohttp.ClientSession:
-        """Get or create aiohttp session."""
-        if self._session is None or self._session.closed:
-            self._session = aiohttp.ClientSession()
-        return self._session
+        """Get or create aiohttp session with connection pooling."""
+        async with self._session_lock:
+            if self._session is None or self._session.closed:
+                # Create connection pool with limits
+                connector = aiohttp.TCPConnector(
+                    limit=self.max_connections,
+                    limit_per_host=self.max_connections_per_host,
+                    ttl_dns_cache=300,  # DNS cache TTL
+                    use_dns_cache=True,
+                    keepalive_timeout=30,
+                    enable_cleanup_closed=True
+                )
+                
+                # Create timeout configuration
+                timeout = aiohttp.ClientTimeout(
+                    total=self.request_timeout_seconds,
+                    connect=self.connection_timeout,
+                    sock_connect=self.connection_timeout,
+                    sock_read=30
+                )
+                
+                self._session = aiohttp.ClientSession(
+                    connector=connector,
+                    timeout=timeout,
+                    headers={
+                        'User-Agent': 'MCP-SGR/0.1.0 (LLM Client)',
+                        'Accept': 'application/json',
+                        'Accept-Encoding': 'gzip, deflate'
+                    }
+                )
+                
+                logger.debug("Created new HTTP session with connection pooling")
+            
+            return self._session
 
     async def generate(
         self,
@@ -286,10 +329,220 @@ class LLMClient:
             logger.error(f"Custom LLM generation failed: {e}")
             raise
 
+    async def generate_batch(
+        self,
+        prompts: List[str],
+        model: Optional[str] = None,
+        backend: Optional[Union[str, LLMBackend]] = None,
+        temperature: float = 0.1,
+        max_tokens: int = 2000,
+        system_prompt: Optional[str] = None,
+        max_concurrent: int = 5,
+        **kwargs,
+    ) -> List[str]:
+        """Generate responses for multiple prompts concurrently.
+        
+        Args:
+            prompts: List of prompts to process
+            max_concurrent: Maximum number of concurrent requests
+            **kwargs: Additional parameters passed to generate()
+            
+        Returns:
+            List of generated responses in the same order as prompts
+        """
+        semaphore = asyncio.Semaphore(max_concurrent)
+        
+        async def process_prompt(prompt: str) -> str:
+            async with semaphore:
+                return await self.generate(
+                    prompt=prompt,
+                    model=model,
+                    backend=backend,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    system_prompt=system_prompt,
+                    **kwargs
+                )
+        
+        # Process all prompts concurrently
+        tasks = [process_prompt(prompt) for prompt in prompts]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        
+        # Convert exceptions to error strings
+        processed_results = []
+        for i, result in enumerate(results):
+            if isinstance(result, Exception):
+                logger.error(f"Batch processing failed for prompt {i}: {result}")
+                processed_results.append(f"Error: {str(result)}")
+            else:
+                processed_results.append(result)
+        
+        return processed_results
+
+    def get_performance_stats(self) -> dict:
+        """Get performance statistics for the LLM client."""
+        if self._request_count == 0:
+            avg_response_time = 0.0
+        else:
+            avg_response_time = self._total_response_time / self._request_count
+        
+        error_rate = (self._error_count / self._request_count * 100) if self._request_count > 0 else 0.0
+        
+        return {
+            "total_requests": self._request_count,
+            "total_errors": self._error_count,
+            "error_rate_percent": round(error_rate, 2),
+            "average_response_time_seconds": round(avg_response_time, 3),
+            "session_open": self._session is not None and not self._session.closed
+        }
+
+    def reset_performance_stats(self):
+        """Reset performance statistics."""
+        self._request_count = 0
+        self._error_count = 0
+        self._total_response_time = 0.0
+
+    async def health_check(self, timeout: float = 10.0) -> dict:
+        """Perform health check on configured backends.
+        
+        Args:
+            timeout: Timeout for health check requests
+            
+        Returns:
+            Dictionary with health status for each backend
+        """
+        health_status = {}
+        
+        for backend in self.backends:
+            try:
+                if backend == LLMBackend.OLLAMA:
+                    status = await self._health_check_ollama(timeout)
+                elif backend == LLMBackend.OPENROUTER:
+                    status = await self._health_check_openrouter(timeout)
+                elif backend == LLMBackend.CUSTOM:
+                    status = await self._health_check_custom(timeout)
+                else:
+                    status = {"status": "unknown", "message": "Backend not implemented"}
+                
+                health_status[backend.value] = status
+                
+            except Exception as e:
+                health_status[backend.value] = {
+                    "status": "error",
+                    "message": str(e)
+                }
+        
+        return health_status
+
+    async def _health_check_ollama(self, timeout: float) -> dict:
+        """Health check for Ollama backend."""
+        session = await self._get_session()
+        
+        try:
+            async with session.get(
+                f"{self.ollama_host}/api/tags",
+                timeout=aiohttp.ClientTimeout(total=timeout)
+            ) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    models = [model["name"] for model in data.get("models", [])]
+                    return {
+                        "status": "healthy",
+                        "available_models": models,
+                        "default_model": self.ollama_model
+                    }
+                else:
+                    return {
+                        "status": "unhealthy",
+                        "message": f"HTTP {response.status}"
+                    }
+        except Exception as e:
+            return {
+                "status": "error",
+                "message": str(e)
+            }
+
+    async def _health_check_openrouter(self, timeout: float) -> dict:
+        """Health check for OpenRouter backend."""
+        if not self.openrouter_key:
+            return {
+                "status": "unconfigured",
+                "message": "No API key configured"
+            }
+        
+        session = await self._get_session()
+        
+        try:
+            async with session.get(
+                "https://openrouter.ai/api/v1/models",
+                headers={"Authorization": f"Bearer {self.openrouter_key}"},
+                timeout=aiohttp.ClientTimeout(total=timeout)
+            ) as response:
+                if response.status == 200:
+                    return {
+                        "status": "healthy",
+                        "default_model": self.openrouter_model
+                    }
+                else:
+                    return {
+                        "status": "unhealthy",
+                        "message": f"HTTP {response.status}"
+                    }
+        except Exception as e:
+            return {
+                "status": "error",
+                "message": str(e)
+            }
+
+    async def _health_check_custom(self, timeout: float) -> dict:
+        """Health check for custom backend."""
+        if not self.custom_url:
+            return {
+                "status": "unconfigured",
+                "message": "No custom URL configured"
+            }
+        
+        session = await self._get_session()
+        
+        try:
+            # Try a simple health check endpoint
+            health_url = f"{self.custom_url.rstrip('/')}/health"
+            async with session.get(
+                health_url,
+                timeout=aiohttp.ClientTimeout(total=timeout)
+            ) as response:
+                if response.status == 200:
+                    return {"status": "healthy"}
+                else:
+                    return {
+                        "status": "unhealthy", 
+                        "message": f"HTTP {response.status}"
+                    }
+        except Exception as e:
+            return {
+                "status": "error",
+                "message": str(e)
+            }
+
+    async def _track_request_performance(self, start_time: float, success: bool):
+        """Track request performance metrics."""
+        response_time = asyncio.get_event_loop().time() - start_time
+        
+        self._request_count += 1
+        self._total_response_time += response_time
+        
+        if not success:
+            self._error_count += 1
+        
+        # Log slow requests
+        if response_time > 30.0:  # 30 seconds threshold
+            logger.warning(f"Slow LLM request: {response_time:.2f}s")
+
     async def close(self):
         """Close the client and cleanup resources."""
         if self._session and not self._session.closed:
             await self._session.close()
+            logger.debug("Closed HTTP session")
 
     def __del__(self):
         """Cleanup on deletion."""

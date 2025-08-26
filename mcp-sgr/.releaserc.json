@@ -1,0 +1,100 @@
+{
+  "branches": [
+    "main",
+    {
+      "name": "develop",
+      "prerelease": "beta"
+    },
+    {
+      "name": "release/*",
+      "prerelease": "rc"
+    }
+  ],
+  "plugins": [
+    [
+      "@semantic-release/commit-analyzer",
+      {
+        "preset": "conventionalcommits",
+        "releaseRules": [
+          {"type": "feat", "release": "minor"},
+          {"type": "fix", "release": "patch"},
+          {"type": "perf", "release": "patch"},
+          {"type": "docs", "release": false},
+          {"type": "style", "release": false},
+          {"type": "refactor", "release": "patch"},
+          {"type": "test", "release": false},
+          {"type": "build", "release": false},
+          {"type": "ci", "release": false},
+          {"type": "chore", "release": false},
+          {"type": "revert", "release": "patch"},
+          {"breaking": true, "release": "major"}
+        ]
+      }
+    ],
+    [
+      "@semantic-release/release-notes-generator",
+      {
+        "preset": "conventionalcommits",
+        "presetConfig": {
+          "types": [
+            {"type": "feat", "section": "🚀 Features"},
+            {"type": "fix", "section": "🐛 Bug Fixes"},
+            {"type": "perf", "section": "⚡ Performance Improvements"},
+            {"type": "refactor", "section": "♻️ Code Refactoring"},
+            {"type": "docs", "section": "📚 Documentation"},
+            {"type": "style", "section": "💎 Styles"},
+            {"type": "test", "section": "🧪 Tests"},
+            {"type": "build", "section": "📦 Build System"},
+            {"type": "ci", "section": "👷 CI/CD"},
+            {"type": "chore", "section": "🔧 Chores"},
+            {"type": "revert", "section": "⏪ Reverts"}
+          ]
+        }
+      }
+    ],
+    [
+      "@semantic-release/changelog",
+      {
+        "changelogFile": "CHANGELOG.md",
+        "changelogTitle": "# Changelog\n\nAll notable changes to this project will be documented in this file."
+      }
+    ],
+    [
+      "@semantic-release/npm",
+      {
+        "npmPublish": false,
+        "tarballDir": "dist"
+      }
+    ],
+    [
+      "@semantic-release/exec",
+      {
+        "prepareCmd": "echo 'VERSION=${nextRelease.version}' > .env.release",
+        "publishCmd": "echo 'Release ${nextRelease.version} published'"
+      }
+    ],
+    [
+      "@semantic-release/git",
+      {
+        "assets": [
+          "CHANGELOG.md",
+          "pyproject.toml",
+          "src/__init__.py"
+        ],
+        "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
+      }
+    ],
+    [
+      "@semantic-release/github",
+      {
+        "assets": [
+          {
+            "path": "dist/*.tar.gz",
+            "label": "Python Package"
+          }
+        ],
+        "addReleases": "bottom"
+      }
+    ]
+  ]
+}

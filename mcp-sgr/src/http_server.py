@@ -1,9 +1,11 @@
 """HTTP facade for MCP-SGR server."""
 
+import asyncio
 import logging
 import os
 import time
 from contextlib import asynccontextmanager
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 import uvicorn
@@ -49,37 +51,96 @@ class SimpleRateLimiter:
         return count <= self.max_rpm
 
 
+# Enhanced input validation patterns
+import re
+from pydantic import validator
+
+# Security patterns for input validation
+DANGEROUS_PATTERNS = [
+    r'<script[^>]*>.*?</script>',  # XSS attempts
+    r'javascript:',  # JavaScript execution
+    r'eval\s*\(',  # Eval function
+    r'exec\s*\(',  # Exec function
+    r'import\s+os',  # OS imports
+    r'subprocess',  # Subprocess calls
+    r'__import__',  # Dynamic imports
+]
+
+def validate_safe_input(value: str) -> str:
+    """Validate input for security threats."""
+    if not isinstance(value, str):
+        raise ValueError("Input must be a string")
+    
+    # Check for dangerous patterns
+    for pattern in DANGEROUS_PATTERNS:
+        if re.search(pattern, value, re.IGNORECASE):
+            raise ValueError(f"Potentially dangerous input detected")
+    
+    # Length limit
+    if len(value) > 50000:  # 50KB limit
+        raise ValueError("Input too long (max 50KB)")
+    
+    return value
+
 # Pydantic models for requests/responses
 class ApplySGRRequest(BaseModel):
-    task: str = Field(..., description="The task or problem to analyze")
+    task: str = Field(..., description="The task or problem to analyze", max_length=10000)
     context: Optional[Dict[str, Any]] = Field(default={}, description="Additional context")
-    schema_type: str = Field(default="auto", description="Schema type to use")
+    schema_type: str = Field(default="auto", description="Schema type to use", regex="^[a-zA-Z0-9_-]+$")
     custom_schema: Optional[Dict[str, Any]] = Field(
         default=None, description="Custom schema definition"
     )
-    budget: str = Field(default="lite", description="Reasoning budget depth")
+    budget: str = Field(default="lite", description="Reasoning budget depth", regex="^(lite|standard|full)$")
+    
+    @validator('task')
+    def validate_task_safety(cls, v):
+        return validate_safe_input(v)
 
 
 class WrapAgentRequest(BaseModel):
-    agent_endpoint: str = Field(..., description="Agent endpoint URL or identifier")
+    agent_endpoint: str = Field(..., description="Agent endpoint URL or identifier", max_length=1000)
     agent_request: Dict[str, Any] = Field(..., description="Request payload for the agent")
     sgr_config: Optional[Dict[str, Any]] = Field(
         default_factory=dict, description="SGR configuration"
     )
+    
+    @validator('agent_endpoint')
+    def validate_endpoint_safety(cls, v):
+        if not v.startswith(('http://', 'https://')):
+            # Allow named endpoints for internal routing
+            if not re.match(r'^[a-zA-Z0-9_-]+$', v):
+                raise ValueError("Invalid endpoint format")
+        return v
 
 
 class EnhancePromptRequest(BaseModel):
-    original_prompt: str = Field(..., description="The original prompt to enhance")
-    target_model: Optional[str] = Field(default=None, description="Target model identifier")
-    enhancement_level: str = Field(default="standard", description="Enhancement level")
+    original_prompt: str = Field(..., description="The original prompt to enhance", max_length=10000)
+    target_model: Optional[str] = Field(default=None, description="Target model identifier", max_length=100)
+    enhancement_level: str = Field(default="standard", description="Enhancement level", regex="^(minimal|standard|aggressive)$")
+    
+    @validator('original_prompt')
+    def validate_prompt_safety(cls, v):
+        return validate_safe_input(v)
+    
+    @validator('target_model')
+    def validate_model_name(cls, v):
+        if v and not re.match(r'^[a-zA-Z0-9/_.-]+$', v):
+            raise ValueError("Invalid model name format")
+        return v
 
 
 class LearnSchemaRequest(BaseModel):
     examples: List[Dict[str, Any]] = Field(
-        ..., description="Example inputs and expected reasoning", min_length=3
+        ..., description="Example inputs and expected reasoning", min_length=3, max_length=20
     )
-    task_type: str = Field(..., description="Name for the new schema/task type")
-    description: Optional[str] = Field(default=None, description="Description of the schema")
+    task_type: str = Field(..., description="Name for the new schema/task type", max_length=50, regex="^[a-zA-Z0-9_-]+$")
+    description: Optional[str] = Field(default=None, description="Description of the schema", max_length=1000)
+    
+    @validator('description')
+    def validate_description_safety(cls, v):
+        if v:
+            return validate_safe_input(v)
+        return v
 
 
 class HealthResponse(BaseModel):
@@ -160,13 +221,89 @@ async def lifespan(app: FastAPI):
             pass
 
 
-# Create FastAPI app
+# Create FastAPI app with enhanced metadata
 app = FastAPI(
     title="MCP-SGR HTTP API",
-    description="HTTP facade for Schema-Guided Reasoning middleware",
+    description="""
+    ## Schema-Guided Reasoning API
+    
+    A powerful middleware for transparent and managed LLM agent reasoning via MCP and SGR.
+    
+    ### Features
+    - 🧠 **Schema-Guided Reasoning**: Structured thinking for LLM agents
+    - 🔄 **Multi-LLM Support**: Works with Ollama, OpenRouter, vLLM and more
+    - 🚀 **Budget Optimization**: Free models perform like premium ones
+    - 🔒 **Enterprise Security**: JWT auth, rate limiting, input validation
+    - 📊 **Observability**: OpenTelemetry integration, caching, tracing
+    
+    ### Quick Start
+    1. Get API key from admin
+    2. Set `X-API-Key` header in requests
+    3. Use `/v1/apply-sgr` for structured reasoning
+    4. Monitor usage via `/v1/cache-stats` and `/v1/traces`
+    
+    ### Rate Limits
+    - Default: 120 requests per minute per API key
+    - Contact admin for higher limits
+    """,
     version="0.1.0",
+    contact={
+        "name": "MCP-SGR Team", 
+        "email": "team@mcp-sgr.dev",
+        "url": "https://github.com/mcp-sgr/mcp-sgr"
+    },
+    license_info={
+        "name": "MIT License",
+        "url": "https://opensource.org/licenses/MIT"
+    },
+    docs_url="/docs",  # Standard Swagger UI
+    redoc_url="/redoc",  # Standard ReDoc
+    openapi_tags=[
+        {"name": "reasoning", "description": "Core SGR operations"},
+        {"name": "agents", "description": "Agent wrapper functionality"},
+        {"name": "prompts", "description": "Prompt enhancement tools"},
+        {"name": "schemas", "description": "Schema management"},
+        {"name": "monitoring", "description": "System monitoring and stats"},
+        {"name": "health", "description": "Health checks and status"}
+    ],
     lifespan=lifespan,
 )
+
+# Security Headers Middleware
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    """Add security headers to all responses."""
+    response = await call_next(request)
+    
+    # Security headers
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'none'; object-src 'none'"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+    
+    return response
+
+# Rate Limiting Middleware
+@app.middleware("http")
+async def rate_limit_middleware(request: Request, call_next):
+    """Apply rate limiting based on IP address or API key."""
+    if rate_limiter and rate_limiter.enabled:
+        # Use API key if present, otherwise IP address
+        api_key = request.headers.get("x-api-key")
+        client_id = api_key if api_key else request.client.host if request.client else "unknown"
+        
+        if not rate_limiter.allow(client_id):
+            logger.warning(f"Rate limit exceeded for client: {client_id}")
+            raise HTTPException(
+                status_code=429,
+                detail="Rate limit exceeded. Please try again later.",
+                headers={"Retry-After": "60"}
+            )
+    
+    return await call_next(request)
 
 # Add CORS middleware (configurable via ENV)
 cors_origins_env = os.getenv("HTTP_CORS_ORIGINS", "*")
@@ -177,8 +314,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=allow_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST"],  # More restrictive
+    allow_headers=["Authorization", "Content-Type", "X-API-Key"],  # More restrictive
 )
 
 
@@ -239,7 +376,7 @@ async def verify_rate_limit(request: Request) -> bool:
     return True
 
 
-@app.get("/health", response_model=HealthResponse)
+@app.get("/health", response_model=HealthResponse, tags=["health"])
 async def health_check():
     """Health check endpoint."""
     return HealthResponse(
@@ -250,7 +387,7 @@ async def health_check():
     )
 
 
-@app.post("/v1/apply-sgr")
+@app.post("/v1/apply-sgr", tags=["reasoning"])
 async def apply_sgr(
     request: ApplySGRRequest,
     authorized: bool = Depends(verify_api_key),
@@ -275,7 +412,7 @@ async def apply_sgr(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/v1/wrap-agent")
+@app.post("/v1/wrap-agent", tags=["agents"])
 async def wrap_agent(
     request: WrapAgentRequest,
     authorized: bool = Depends(verify_api_key),
@@ -300,7 +437,7 @@ async def wrap_agent(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/v1/enhance-prompt")
+@app.post("/v1/enhance-prompt", tags=["prompts"])
 async def enhance_prompt(
     request: EnhancePromptRequest,
     authorized: bool = Depends(verify_api_key),
@@ -322,7 +459,7 @@ async def enhance_prompt(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/v1/learn-schema")
+@app.post("/v1/learn-schema", tags=["schemas"])
 async def learn_schema(
     request: LearnSchemaRequest,
     authorized: bool = Depends(verify_api_key),
@@ -342,7 +479,7 @@ async def learn_schema(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/v1/schemas")
+@app.get("/v1/schemas", tags=["schemas"])
 async def list_schemas(
     authorized: bool = Depends(verify_api_key), _: bool = Depends(verify_rate_limit)
 ):
@@ -363,7 +500,7 @@ async def list_schemas(
     return schemas
 
 
-@app.get("/v1/cache-stats")
+@app.get("/v1/cache-stats", tags=["monitoring"])
 async def get_cache_stats(
     authorized: bool = Depends(verify_api_key), _: bool = Depends(verify_rate_limit)
 ):
@@ -377,7 +514,7 @@ async def get_cache_stats(
     return await cache_manager.get_cache_stats()
 
 
-@app.get("/v1/traces")
+@app.get("/v1/traces", tags=["monitoring"])
 async def get_traces(
     limit: int = 10,
     tool_name: Optional[str] = None,
@@ -394,6 +531,129 @@ async def get_traces(
     return await cache_manager.get_recent_traces(limit=limit, tool_name=tool_name)
 
 
+@app.get("/v1/performance-stats", tags=["monitoring"])
+async def get_performance_stats(
+    authorized: bool = Depends(verify_api_key),
+    _: bool = Depends(verify_rate_limit)
+):
+    """Get LLM client performance statistics."""
+    if not authorized:
+        raise HTTPException(status_code=401, detail="Invalid API key")
+
+    if not llm_client:
+        raise HTTPException(status_code=503, detail="LLM client not initialized")
+
+    return llm_client.get_performance_stats()
+
+
+@app.post("/v1/performance-stats/reset", tags=["monitoring"])
+async def reset_performance_stats(
+    authorized: bool = Depends(verify_api_key),
+    _: bool = Depends(verify_rate_limit)
+):
+    """Reset LLM client performance statistics."""
+    if not authorized:
+        raise HTTPException(status_code=401, detail="Invalid API key")
+
+    if not llm_client:
+        raise HTTPException(status_code=503, detail="LLM client not initialized")
+
+    llm_client.reset_performance_stats()
+    return {"message": "Performance statistics reset successfully"}
+
+
+@app.get("/v1/health-check", tags=["monitoring"])
+async def detailed_health_check(
+    timeout: float = 10.0,
+    authorized: bool = Depends(verify_api_key),
+    _: bool = Depends(verify_rate_limit)
+):
+    """Perform detailed health check on all backends."""
+    if not authorized:
+        raise HTTPException(status_code=401, detail="Invalid API key")
+
+    if not llm_client:
+        raise HTTPException(status_code=503, detail="LLM client not initialized")
+
+    try:
+        health_status = await llm_client.health_check(timeout)
+        
+        # Add overall status
+        all_healthy = all(
+            status.get("status") == "healthy" 
+            for status in health_status.values()
+        )
+        
+        return {
+            "overall_status": "healthy" if all_healthy else "degraded",
+            "backends": health_status,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Health check failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Health check failed: {str(e)}")
+
+
+@app.post("/v1/batch-apply-sgr", tags=["reasoning"])
+async def batch_apply_sgr(
+    requests: List[ApplySGRRequest],
+    max_concurrent: int = 5,
+    authorized: bool = Depends(verify_api_key),
+    _: bool = Depends(verify_rate_limit)
+):
+    """Apply SGR to multiple tasks concurrently."""
+    if not authorized:
+        raise HTTPException(status_code=401, detail="Invalid API key")
+
+    if not llm_client:
+        raise HTTPException(status_code=503, detail="Service not initialized")
+    
+    if len(requests) > 20:  # Limit batch size
+        raise HTTPException(status_code=400, detail="Batch size too large (max 20)")
+    
+    if max_concurrent > 10:  # Limit concurrency
+        max_concurrent = 10
+
+    try:
+        # Process requests concurrently
+        semaphore = asyncio.Semaphore(max_concurrent)
+        
+        async def process_request(request: ApplySGRRequest):
+            async with semaphore:
+                return await apply_sgr_tool(
+                    arguments=request.dict(),
+                    llm_client=llm_client,
+                    cache_manager=cache_manager,
+                    telemetry_manager=telemetry_manager
+                )
+        
+        tasks = [process_request(req) for req in requests]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        
+        # Process results
+        processed_results = []
+        for i, result in enumerate(results):
+            if isinstance(result, Exception):
+                logger.error(f"Batch request {i} failed: {result}")
+                processed_results.append({
+                    "error": str(result),
+                    "request_index": i
+                })
+            else:
+                processed_results.append(result)
+        
+        return {
+            "results": processed_results,
+            "total_requests": len(requests),
+            "successful_requests": sum(1 for r in results if not isinstance(r, Exception)),
+            "failed_requests": sum(1 for r in results if isinstance(r, Exception))
+        }
+        
+    except Exception as e:
+        logger.error(f"Batch processing failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/openapi.yaml")
 async def openapi_yaml():
     """Serve OpenAPI schema in YAML."""
@@ -404,6 +664,31 @@ async def openapi_yaml():
     except Exception as e:
         logger.error(f"Failed to render OpenAPI YAML: {e}")
         raise HTTPException(status_code=500, detail="Failed to render OpenAPI")
+
+
+@app.get("/docs/swagger")
+async def swagger_ui():
+    """Custom Swagger UI with enhanced documentation."""
+    from fastapi.openapi.docs import get_swagger_ui_html
+    
+    return get_swagger_ui_html(
+        openapi_url="/openapi.json",
+        title="MCP-SGR API Documentation",
+        swagger_css_url="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.9.0/swagger-ui.css",
+        swagger_js_url="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.9.0/swagger-ui-bundle.js",
+    )
+
+
+@app.get("/docs/redoc")  
+async def redoc():
+    """ReDoc documentation interface."""
+    from fastapi.openapi.docs import get_redoc_html
+    
+    return get_redoc_html(
+        openapi_url="/openapi.json",
+        title="MCP-SGR API Documentation",
+        redoc_js_url="https://cdn.jsdelivr.net/npm/redoc@2.1.3/bundles/redoc.standalone.js",
+    )
 
 
 def run_http_server(host: str = "127.0.0.1", port: int = 8080):

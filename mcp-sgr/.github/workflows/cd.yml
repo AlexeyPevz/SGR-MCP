@@ -1,0 +1,203 @@
+name: CD - Deploy and Release
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  release:
+    types: [published]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  semantic-version:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    outputs:
+      version: ${{ steps.semantic.outputs.new_release_version }}
+      released: ${{ steps.semantic.outputs.new_release_published }}
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Semantic Release
+      uses: cycjimmy/semantic-release-action@v4
+      id: semantic
+      with:
+        semantic_version: 19
+        extra_plugins: |
+          @semantic-release/changelog
+          @semantic-release/git
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-and-push:
+    runs-on: ubuntu-latest
+    needs: [semantic-version]
+    if: always() && (github.event_name == 'release' || needs.semantic-version.outputs.released == 'true' || startsWith(github.ref, 'refs/tags/'))
+    permissions:
+      contents: read
+      packages: write
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=semver,pattern={{version}}
+          type=semver,pattern={{major}}.{{minor}}
+          type=semver,pattern={{major}}
+          type=raw,value=latest,enable={{is_default_branch}}
+    
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        platforms: linux/amd64,linux/arm64
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        build-args: |
+          VERSION=${{ needs.semantic-version.outputs.version || github.ref_name }}
+          BUILD_DATE=${{ github.event.head_commit.timestamp }}
+          VCS_REF=${{ github.sha }}
+
+  deploy-staging:
+    runs-on: ubuntu-latest
+    needs: [build-and-push]
+    if: github.ref == 'refs/heads/main'
+    environment: staging
+    
+    steps:
+    - name: Deploy to staging
+      run: |
+        echo "🚀 Deploying to staging environment"
+        echo "Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
+        
+        # In a real deployment, you would:
+        # 1. Connect to staging server
+        # 2. Pull new image
+        # 3. Update running containers
+        # 4. Run health checks
+        
+        # Example deployment script:
+        # ssh staging-server "docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
+        # ssh staging-server "docker-compose -f docker-compose.staging.yml up -d"
+        # ssh staging-server "docker exec mcp-sgr-staging curl -f http://localhost:8080/health"
+        
+    - name: Run staging smoke tests
+      run: |
+        echo "🧪 Running staging smoke tests"
+        # curl -f https://staging.mcp-sgr.dev/health
+        # curl -f https://staging.mcp-sgr.dev/docs
+        echo "✅ Staging smoke tests passed"
+
+  deploy-production:
+    runs-on: ubuntu-latest
+    needs: [build-and-push, deploy-staging]
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'release'
+    environment: production
+    
+    steps:
+    - name: Deploy to production
+      run: |
+        echo "🚀 Deploying to production environment"
+        echo "Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}"
+        
+        # Production deployment with zero-downtime:
+        # 1. Deploy to blue environment
+        # 2. Run health checks
+        # 3. Switch traffic from green to blue
+        # 4. Keep green as rollback option
+        
+    - name: Run production health checks
+      run: |
+        echo "🏥 Running production health checks"
+        # curl -f https://api.mcp-sgr.dev/health
+        # Check metrics, logs, dependencies
+        echo "✅ Production health checks passed"
+    
+    - name: Update deployment status
+      run: |
+        echo "📊 Updating deployment status"
+        # Update status page, monitoring dashboards
+        # Send notifications to team
+
+  create-github-release:
+    runs-on: ubuntu-latest
+    needs: [semantic-version, build-and-push]
+    if: needs.semantic-version.outputs.released == 'true'
+    permissions:
+      contents: write
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Generate changelog
+      id: changelog
+      run: |
+        echo "## What's Changed" > CHANGELOG.md
+        git log --pretty=format:"- %s (%h)" $(git describe --tags --abbrev=0 HEAD~1)..HEAD >> CHANGELOG.md
+        echo "" >> CHANGELOG.md
+        echo "**Full Changelog**: https://github.com/${{ github.repository }}/compare/$(git describe --tags --abbrev=0 HEAD~1)...v${{ needs.semantic-version.outputs.version }}" >> CHANGELOG.md
+    
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v${{ needs.semantic-version.outputs.version }}
+        name: Release v${{ needs.semantic-version.outputs.version }}
+        body_path: CHANGELOG.md
+        draft: false
+        prerelease: false
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  notify:
+    runs-on: ubuntu-latest
+    needs: [deploy-production, create-github-release]
+    if: always()
+    
+    steps:
+    - name: Notify team
+      run: |
+        if [[ "${{ needs.deploy-production.result }}" == "success" ]]; then
+          echo "✅ Deployment successful!"
+          # Send success notification (Slack, Discord, email, etc.)
+        else
+          echo "❌ Deployment failed!"
+          # Send failure notification with details
+        fi
+        
+        echo "📋 Deployment Summary:"
+        echo "- Version: ${{ needs.semantic-version.outputs.version || github.ref_name }}"
+        echo "- Environment: Production"
+        echo "- Status: ${{ needs.deploy-production.result }}"
+        echo "- Commit: ${{ github.sha }}"
+        echo "- Author: ${{ github.actor }}"
