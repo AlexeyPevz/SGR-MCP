@@ -1,0 +1,167 @@
+version: '3.8'
+
+services:
+  # MCP-SGR Server (Staging)
+  mcp-sgr-staging:
+    image: ghcr.io/mcp-sgr/mcp-sgr:latest
+    container_name: mcp-sgr-staging
+    ports:
+      - "8081:8080"  # Different port for staging
+    environment:
+      # Environment
+      - ENVIRONMENT=staging
+      - LOG_LEVEL=debug
+      
+      # LLM Configuration
+      - LLM_BACKENDS=ollama,openrouter
+      - OLLAMA_HOST=http://ollama-staging:11434
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      
+      # SGR Configuration
+      - SGR_BUDGET_DEPTH=lite
+      - SGR_PRE_ANALYSIS=auto
+      - SGR_POST_ANALYSIS=lite
+      
+      # Cache Configuration
+      - CACHE_ENABLED=true
+      - CACHE_STORE=redis://redis-staging:6379/0
+      
+      # Trace Configuration
+      - TRACE_ENABLED=true
+      - TRACE_STORE=postgresql://postgres:${POSTGRES_PASSWORD}@postgres-staging:5432/traces
+      
+      # HTTP Configuration
+      - HTTP_ENABLED=true
+      - HTTP_PORT=8080
+      - HTTP_HOST=0.0.0.0
+      - HTTP_REQUIRE_AUTH=true
+      - HTTP_AUTH_TOKEN=${STAGING_AUTH_TOKEN}
+      - HTTP_CORS_ORIGINS=https://staging.mcp-sgr.dev,http://localhost:3000
+      
+      # Rate Limiting
+      - RATE_LIMIT_ENABLED=true
+      - RATE_LIMIT_MAX_RPM=200
+      - RATE_LIMIT_BACKEND=redis
+      
+      # Telemetry
+      - OTEL_ENABLED=true
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector-staging:4317
+      - OTEL_SERVICE_NAME=mcp-sgr-staging
+      
+    volumes:
+      - staging_data:/app/data
+      - staging_logs:/app/logs
+      - ./config/router_policy.yaml:/app/config/router_policy.yaml:ro
+    depends_on:
+      - redis-staging
+      - postgres-staging
+      - ollama-staging
+    restart: unless-stopped
+    networks:
+      - staging-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Redis for staging
+  redis-staging:
+    image: redis:7-alpine
+    container_name: redis-staging
+    ports:
+      - "6380:6379"
+    volumes:
+      - staging_redis:/data
+    networks:
+      - staging-network
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+
+  # PostgreSQL for staging
+  postgres-staging:
+    image: postgres:15-alpine
+    container_name: postgres-staging
+    ports:
+      - "5433:5432"
+    environment:
+      - POSTGRES_DB=mcp_sgr_staging
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - staging_postgres:/var/lib/postgresql/data
+      - ./scripts/init-staging-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - staging-network
+    restart: unless-stopped
+
+  # Ollama for staging
+  ollama-staging:
+    image: ollama/ollama:latest
+    container_name: ollama-staging
+    ports:
+      - "11435:11434"
+    volumes:
+      - staging_ollama:/root/.ollama
+    networks:
+      - staging-network
+    restart: unless-stopped
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+
+  # OpenTelemetry Collector
+  otel-collector-staging:
+    image: otel/opentelemetry-collector-contrib:latest
+    container_name: otel-collector-staging
+    ports:
+      - "4318:4318"   # OTLP HTTP
+      - "4319:4317"   # OTLP gRPC
+    volumes:
+      - ./config/otel-config-staging.yaml:/etc/otelcol-contrib/otel-collector-config.yaml:ro
+    networks:
+      - staging-network
+    restart: unless-stopped
+
+  # Monitoring (Prometheus + Grafana)
+  prometheus-staging:
+    image: prom/prometheus:latest
+    container_name: prometheus-staging
+    ports:
+      - "9091:9090"
+    volumes:
+      - ./config/prometheus-staging.yml:/etc/prometheus/prometheus.yml:ro
+      - staging_prometheus:/prometheus
+    networks:
+      - staging-network
+    restart: unless-stopped
+
+  grafana-staging:
+    image: grafana/grafana:latest
+    container_name: grafana-staging
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel
+    volumes:
+      - staging_grafana:/var/lib/grafana
+      - ./config/grafana-datasources-staging.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
+      - ./config/grafana-dashboards:/etc/grafana/provisioning/dashboards:ro
+    networks:
+      - staging-network
+    restart: unless-stopped
+
+volumes:
+  staging_data:
+  staging_logs:
+  staging_redis:
+  staging_postgres:
+  staging_ollama:
+  staging_prometheus:
+  staging_grafana:
+
+networks:
+  staging-network:
+    driver: bridge
+    name: mcp-sgr-staging
