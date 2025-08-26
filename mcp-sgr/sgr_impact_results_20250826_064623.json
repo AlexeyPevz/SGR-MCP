@@ -1,0 +1,520 @@
+{
+  "timestamp": "2025-08-26T06:32:43.945274",
+  "tasks": [
+    {
+      "id": "complex_analysis",
+      "name": "Complex Problem Analysis",
+      "task": "A production database is experiencing intermittent slowdowns. The symptoms are:\n- Queries that normally take 50ms spike to 5-10 seconds\n- CPU usage remains low (20-30%)\n- Memory usage is stable\n- Disk I/O shows occasional spikes\n- The pattern seems random but happens 5-10 times per hour\n- Application logs show timeout errors during these periods\n\nAnalyze this problem systematically and provide:\n1. Possible root causes (ranked by likelihood)\n2. Diagnostic steps to confirm each hypothesis\n3. Solutions for each potential cause\n4. Prevention strategies",
+      "scoring_keywords": {
+        "root_causes": [
+          "lock",
+          "index",
+          "connection",
+          "cache",
+          "query",
+          "transaction"
+        ],
+        "diagnostic": [
+          "monitor",
+          "trace",
+          "profile",
+          "analyze",
+          "check",
+          "measure"
+        ],
+        "solutions": [
+          "optimize",
+          "tune",
+          "configure",
+          "implement",
+          "fix",
+          "adjust"
+        ],
+        "prevention": [
+          "prevent",
+          "avoid",
+          "maintain",
+          "schedule",
+          "automate",
+          "alert"
+        ]
+      }
+    },
+    {
+      "id": "architectural_reasoning",
+      "name": "Architecture Design Reasoning",
+      "task": "Design a real-time collaborative document editing system (like Google Docs). Consider:\n- Multiple users editing simultaneously\n- Conflict resolution\n- Offline support\n- Performance at scale (millions of documents)\n- Security and access control\n\nProvide:\n1. High-level architecture\n2. Key technical decisions and trade-offs\n3. Data flow for concurrent edits\n4. Scalability approach\n5. Critical implementation details",
+      "scoring_keywords": {
+        "architecture": [
+          "crdt",
+          "operational transform",
+          "websocket",
+          "event",
+          "sync",
+          "distributed"
+        ],
+        "tradeoffs": [
+          "consistency",
+          "availability",
+          "partition",
+          "latency",
+          "throughput"
+        ],
+        "scalability": [
+          "shard",
+          "replicate",
+          "cache",
+          "load balance",
+          "horizontal",
+          "cdn"
+        ],
+        "implementation": [
+          "algorithm",
+          "protocol",
+          "api",
+          "service",
+          "component",
+          "layer"
+        ]
+      }
+    },
+    {
+      "id": "code_reasoning",
+      "name": "Code Logic Reasoning",
+      "task": "This Python function has a subtle bug that only appears with specific inputs:\n\n```python\ndef process_transactions(transactions, user_balance):\n    total = user_balance\n    processed = []\n    \n    for txn in transactions:\n        if txn['type'] == 'deposit':\n            total += txn['amount']\n            processed.append(txn)\n        elif txn['type'] == 'withdraw':\n            if total >= txn['amount']:\n                total -= txn['amount']\n                processed.append(txn)\n        elif txn['type'] == 'transfer':\n            fee = txn['amount'] * 0.01\n            if total >= txn['amount'] + fee:\n                total -= (txn['amount'] + fee)\n                processed.append(txn)\n    \n    return processed, total\n```\n\n1. Identify the bug(s)\n2. Explain why it's problematic\n3. Provide test cases that expose the issue\n4. Give a corrected implementation\n5. Suggest additional improvements",
+      "scoring_keywords": {
+        "bugs": [
+          "float",
+          "precision",
+          "rounding",
+          "decimal",
+          "concurrent",
+          "race"
+        ],
+        "problems": [
+          "incorrect",
+          "loss",
+          "error",
+          "inconsistent",
+          "edge case"
+        ],
+        "testing": [
+          "test",
+          "assert",
+          "verify",
+          "validate",
+          "edge",
+          "boundary"
+        ],
+        "improvements": [
+          "validation",
+          "error handling",
+          "type",
+          "documentation",
+          "performance"
+        ]
+      }
+    }
+  ],
+  "detailed_results": [
+    {
+      "task": "complex_analysis",
+      "results": [
+        {
+          "model": "Mistral-7B",
+          "mode": "without_sgr",
+          "response_preview": " 1. Possible root causes (ranked by likelihood):\n\n   a) Inefficient SQL queries: The symptoms suggest that the slowdowns are query-related, as the CPU usage is low and memory usage is stable. The quer...",
+          "scores": {
+            "completeness": 0.8,
+            "depth": 1.0,
+            "practicality": 0.875,
+            "structure": 0.6,
+            "comprehensiveness": 1.0,
+            "total": 0.865
+          },
+          "latency": 12.182658433914185,
+          "tokens": 1151,
+          "cost": 8.057e-05
+        },
+        {
+          "model": "Qwen-2.5-72B",
+          "mode": "without_sgr",
+          "response_preview": "### Analysis of Intermittent Database Slowdowns\nGiven the symptoms described, we can systematically analyze the potential root causes, diagnostic steps, and solutions. Here's a detailed breakdown:\n\n##...",
+          "scores": {
+            "completeness": 1.0,
+            "depth": 1.0,
+            "practicality": 0.625,
+            "structure": 0.8,
+            "comprehensiveness": 1.0,
+            "total": 0.895
+          },
+          "latency": 29.295384407043457,
+          "tokens": 1664,
+          "cost": 0.0004991999999999999
+        },
+        {
+          "model": "Gemini-Flash-1.5",
+          "mode": "without_sgr",
+          "response_preview": "## Analysis of Intermittent Database Slowdowns\n\nThe symptoms point towards I/O-bound issues, despite the low average CPU usage.  The intermittent nature and occasional disk I/O spikes strongly suggest...",
+          "scores": {
+            "completeness": 1.0,
+            "depth": 1.0,
+            "practicality": 0.875,
+            "structure": 0.8,
+            "comprehensiveness": 1.0,
+            "total": 0.9450000000000001
+          },
+          "latency": 8.477808713912964,
+          "tokens": 1449,
+          "cost": 0.0004347
+        },
+        {
+          "model": "Mistral-7B",
+          "mode": "with_sgr",
+          "response_preview": " Based on the provided symptoms and the systematic approach outlined, here is a detailed, well-structured response addressing the requirements:\n\n1. **Possible root causes (ranked by likelihood):**\n   ...",
+          "scores": {
+            "completeness": 0.6,
+            "depth": 1.0,
+            "practicality": 0.75,
+            "structure": 0.6,
+            "comprehensiveness": 1.0,
+            "total": 0.79
+          },
+          "latency": 25.02973747253418,
+          "tokens": 3920,
+          "cost": 0.00027439999999999995
+        },
+        {
+          "model": "Qwen-2.5-72B",
+          "mode": "with_sgr",
+          "response_preview": "### Comprehensive Analysis of Intermittent Database Slowdowns\n\n#### Core Problem\nThe production database is experiencing intermittent slowdowns where queries that typically take 50ms spike to 5-10 sec...",
+          "scores": {
+            "completeness": 1.0,
+            "depth": 1.0,
+            "practicality": 1.0,
+            "structure": 1.0,
+            "comprehensiveness": 1.0,
+            "total": 1.0
+          },
+          "latency": 113.17011332511902,
+          "tokens": 6266,
+          "cost": 0.0018797999999999998
+        },
+        {
+          "model": "Gemini-Flash-1.5",
+          "mode": "with_sgr",
+          "response_preview": "## Analysis of Intermittent Database Slowdowns\n\nThis report analyzes the intermittent slowdowns affecting the production database, characterized by query execution time spikes, occasional disk I/O spi...",
+          "scores": {
+            "completeness": 1.0,
+            "depth": 1.0,
+            "practicality": 1.0,
+            "structure": 0.8,
+            "comprehensiveness": 1.0,
+            "total": 0.97
+          },
+          "latency": 14.038464069366455,
+          "tokens": 3723,
+          "cost": 0.0011168999999999999
+        },
+        {
+          "model": "GPT-4o-mini",
+          "mode": "premium_baseline",
+          "response_preview": "To systematically analyze the intermittent slowdowns in your production database, we will break down the problem into possible root causes, diagnostic steps, solutions, and prevention strategies.\n\n###...",
+          "scores": {
+            "completeness": 1.0,
+            "depth": 1.0,
+            "practicality": 0.875,
+            "structure": 0.8,
+            "comprehensiveness": 1.0,
+            "total": 0.9450000000000001
+          },
+          "latency": 17.44142246246338,
+          "tokens": 1109,
+          "cost": 0.00016634999999999998
+        },
+        {
+          "model": "Claude-3.5-Sonnet",
+          "mode": "premium_baseline",
+          "response_preview": "I'll provide a systematic analysis of this database performance issue.\n\n1. POSSIBLE ROOT CAUSES (ranked by likelihood)\n\nA. Lock Contention (Highest Probability)\n- Multiple queries competing for the sa...",
+          "scores": {
+            "completeness": 0.6,
+            "depth": 1.0,
+            "practicality": 1.0,
+            "structure": 0.6,
+            "comprehensiveness": 1.0,
+            "total": 0.84
+          },
+          "latency": 19.356164693832397,
+          "tokens": 1134,
+          "cost": 0.0034019999999999996
+        }
+      ]
+    },
+    {
+      "task": "architectural_reasoning",
+      "results": [
+        {
+          "model": "Mistral-7B",
+          "mode": "without_sgr",
+          "response_preview": " Title: Real-Time Collaborative Document Editing System (RCDS)\n\n1. High-level Architecture:\n   RCDS will be a web-based application with a client-server architecture. The system will consist of three ...",
+          "scores": {
+            "completeness": 0.42857142857142855,
+            "depth": 1.0,
+            "practicality": 0.625,
+            "structure": 0.6,
+            "comprehensiveness": 1.0,
+            "total": 0.7221428571428571
+          },
+          "latency": 6.62248969078064,
+          "tokens": 984,
+          "cost": 6.887999999999999e-05
+        },
+        {
+          "model": "Qwen-2.5-72B",
+          "mode": "without_sgr",
+          "response_preview": "### 1. High-Level Architecture\n\nA real-time collaborative document editing system, similar to Google Docs, can be designed with the following high-level architecture:\n\n#### Components:\n1. **Client App...",
+          "scores": {
+            "completeness": 0.8571428571428571,
+            "depth": 1.0,
+            "practicality": 0.5,
+            "structure": 0.8,
+            "comprehensiveness": 1.0,
+            "total": 0.8342857142857143
+          },
+          "latency": 48.06291890144348,
+          "tokens": 1920,
+          "cost": 0.0005759999999999999
+        },
+        {
+          "model": "Gemini-Flash-1.5",
+          "mode": "without_sgr",
+          "response_preview": "## Real-Time Collaborative Document Editing System Design\n\nThis design outlines a real-time collaborative document editing system similar to Google Docs, focusing on scalability, conflict resolution, ...",
+          "scores": {
+            "completeness": 0.7142857142857143,
+            "depth": 1.0,
+            "practicality": 0.75,
+            "structure": 0.8,
+            "comprehensiveness": 1.0,
+            "total": 0.8485714285714285
+          },
+          "latency": 7.435051918029785,
+          "tokens": 1265,
+          "cost": 0.00037949999999999995
+        },
+        {
+          "model": "Mistral-7B",
+          "mode": "with_sgr",
+          "response_preview": " 1. High-level Architecture:\n   The proposed system will consist of a client-side application (web-based), a server-side API, and a database. The client-side application will be responsible for user i...",
+          "scores": {
+            "completeness": 0.42857142857142855,
+            "depth": 1.0,
+            "practicality": 0.625,
+            "structure": 0.6,
+            "comprehensiveness": 1.0,
+            "total": 0.7221428571428571
+          },
+          "latency": 22.773709058761597,
+          "tokens": 3230,
+          "cost": 0.00022609999999999997
+        },
+        {
+          "model": "Qwen-2.5-72B",
+          "mode": "with_sgr",
+          "response_preview": "### Comprehensive Design for a Real-Time Collaborative Document Editing System\n\n#### 1. High-Level Architecture\n\n**Overview:**\nThe system will be designed to support real-time collaboration, conflict ...",
+          "scores": {
+            "completeness": 0.7142857142857143,
+            "depth": 1.0,
+            "practicality": 0.625,
+            "structure": 0.8,
+            "comprehensiveness": 1.0,
+            "total": 0.8235714285714286
+          },
+          "latency": 50.5368595123291,
+          "tokens": 3936,
+          "cost": 0.0011807999999999999
+        },
+        {
+          "model": "Gemini-Flash-1.5",
+          "mode": "with_sgr",
+          "response_preview": "## Real-time Collaborative Document Editing System Design\n\nThis document outlines the design of a real-time collaborative document editing system capable of handling millions of documents concurrently...",
+          "scores": {
+            "completeness": 0.7142857142857143,
+            "depth": 1.0,
+            "practicality": 0.875,
+            "structure": 0.8,
+            "comprehensiveness": 1.0,
+            "total": 0.8735714285714286
+          },
+          "latency": 14.334687948226929,
+          "tokens": 3731,
+          "cost": 0.0011193
+        },
+        {
+          "model": "GPT-4o-mini",
+          "mode": "premium_baseline",
+          "response_preview": "Designing a real-time collaborative document editing system like Google Docs involves several components and considerations to ensure a seamless user experience, robust performance, and security. Belo...",
+          "scores": {
+            "completeness": 0.7142857142857143,
+            "depth": 1.0,
+            "practicality": 0.625,
+            "structure": 0.8,
+            "comprehensiveness": 1.0,
+            "total": 0.8235714285714286
+          },
+          "latency": 20.298625707626343,
+          "tokens": 1095,
+          "cost": 0.00016424999999999998
+        },
+        {
+          "model": "Claude-3.5-Sonnet",
+          "mode": "premium_baseline",
+          "response_preview": "I'll provide a comprehensive design for a real-time collaborative document editing system.\n\n1. HIGH-LEVEL ARCHITECTURE\n\n```\nClient Layer\n\u251c\u2500\u2500 Web Client (React/Vue)\n\u251c\u2500\u2500 Mobile Clients (iOS/Android)\n\u2514\u2500\u2500...",
+          "scores": {
+            "completeness": 0.42857142857142855,
+            "depth": 1.0,
+            "practicality": 0.375,
+            "structure": 0.8,
+            "comprehensiveness": 1.0,
+            "total": 0.7021428571428572
+          },
+          "latency": 20.653968572616577,
+          "tokens": 1234,
+          "cost": 0.003702
+        }
+      ]
+    },
+    {
+      "task": "code_reasoning",
+      "results": [
+        {
+          "model": "Mistral-7B",
+          "mode": "without_sgr",
+          "response_preview": " 1. The bug in this function lies in the handling of the `transfer` transaction. The function subtracts the transfer amount plus the fee from the user's balance, but it should only subtract the transf...",
+          "scores": {
+            "completeness": 0.8,
+            "depth": 1.0,
+            "practicality": 0.375,
+            "structure": 1.0,
+            "comprehensiveness": 1.0,
+            "total": 0.825
+          },
+          "latency": 5.9810097217559814,
+          "tokens": 1018,
+          "cost": 7.125999999999999e-05
+        },
+        {
+          "model": "Qwen-2.5-72B",
+          "mode": "without_sgr",
+          "response_preview": "### 1. Identify the Bug(s)\n\nThe function `process_transactions` processes a list of transactions and updates a user's balance accordingly. The bug lies in the handling of the 'transfer' transaction ty...",
+          "scores": {
+            "completeness": 1.0,
+            "depth": 1.0,
+            "practicality": 0.375,
+            "structure": 1.0,
+            "comprehensiveness": 1.0,
+            "total": 0.875
+          },
+          "latency": 54.18033027648926,
+          "tokens": 2151,
+          "cost": 0.0006452999999999999
+        },
+        {
+          "model": "Gemini-Flash-1.5",
+          "mode": "without_sgr",
+          "response_preview": "Let's analyze the provided Python function and address the issues.\n\n**1. Identifying the Bug(s)**\n\nThe primary bug lies in the order of operations within the `transfer` processing.  The function check...",
+          "scores": {
+            "completeness": 1.0,
+            "depth": 1.0,
+            "practicality": 0.625,
+            "structure": 1.0,
+            "comprehensiveness": 1.0,
+            "total": 0.925
+          },
+          "latency": 7.180665731430054,
+          "tokens": 1354,
+          "cost": 0.0004062
+        },
+        {
+          "model": "Mistral-7B",
+          "mode": "with_sgr",
+          "response_preview": " Based on the provided analysis, here's a detailed response to the original task:\n\n1. Identify the bug(s):\n   The bug in the `process_transactions` function lies in the 'transfer' transaction processi...",
+          "scores": {
+            "completeness": 0.6,
+            "depth": 1.0,
+            "practicality": 0.625,
+            "structure": 0.8,
+            "comprehensiveness": 1.0,
+            "total": 0.7949999999999999
+          },
+          "latency": 22.649335384368896,
+          "tokens": 2927,
+          "cost": 0.00020489
+        },
+        {
+          "model": "Qwen-2.5-72B",
+          "mode": "with_sgr",
+          "response_preview": "### Comprehensive Analysis and Response\n\n#### 1. Identification of Bugs\n\nThe function `process_transactions` has several subtle bugs that can lead to incorrect behavior under specific conditions:\n\n1. ...",
+          "scores": {
+            "completeness": 1.0,
+            "depth": 1.0,
+            "practicality": 0.375,
+            "structure": 1.0,
+            "comprehensiveness": 1.0,
+            "total": 0.875
+          },
+          "latency": 194.566752910614,
+          "tokens": 6154,
+          "cost": 0.0018461999999999999
+        },
+        {
+          "model": "Gemini-Flash-1.5",
+          "mode": "with_sgr",
+          "response_preview": "## Analysis of `process_transactions` Function and Proposed Solution\n\nThe provided Python function `process_transactions` contains a subtle bug related to how it handles failed transactions and update...",
+          "scores": {
+            "completeness": 1.0,
+            "depth": 1.0,
+            "practicality": 0.875,
+            "structure": 1.0,
+            "comprehensiveness": 1.0,
+            "total": 0.975
+          },
+          "latency": 17.469114542007446,
+          "tokens": 4370,
+          "cost": 0.0013109999999999999
+        },
+        {
+          "model": "GPT-4o-mini",
+          "mode": "premium_baseline",
+          "response_preview": "### 1. Identify the bug(s)\n\nThe primary bug in the function is related to the handling of the `transfer` transaction type. Specifically, the function deducts the transfer amount plus a fee from the us...",
+          "scores": {
+            "completeness": 1.0,
+            "depth": 1.0,
+            "practicality": 0.625,
+            "structure": 1.0,
+            "comprehensiveness": 1.0,
+            "total": 0.925
+          },
+          "latency": 15.652626991271973,
+          "tokens": 939,
+          "cost": 0.00014084999999999998
+        },
+        {
+          "model": "Claude-3.5-Sonnet",
+          "mode": "premium_baseline",
+          "response_preview": "Let me analyze this function comprehensively.\n\n1. **Bug Identification:**\nThe main bug is in the floating-point arithmetic used for calculating transfer fees. When dealing with monetary values, floati...",
+          "scores": {
+            "completeness": 0.8,
+            "depth": 1.0,
+            "practicality": 0.5,
+            "structure": 1.0,
+            "comprehensiveness": 1.0,
+            "total": 0.85
+          },
+          "latency": 24.048140287399292,
+          "tokens": 1435,
+          "cost": 0.004305000000000001
+        }
+      ]
+    }
+  ]
+}
