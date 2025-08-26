@@ -20,6 +20,9 @@ from mcp.types import (
     Tool,
 )
 
+from fastapi import FastAPI
+
+from . import include_routers
 from .schemas import SCHEMA_REGISTRY
 from .tools.apply_sgr import apply_sgr_tool
 from .tools.enhance_prompt import enhance_prompt_tool
@@ -36,6 +39,10 @@ load_dotenv()
 # Configure logging with rotation
 setup_logging()
 logger = logging.getLogger(__name__)
+
+app = FastAPI()
+
+include_routers(app)
 
 
 class SGRServer:
