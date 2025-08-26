@@ -86,3 +86,47 @@
 2025-08-26 20:13:23 - src.utils.redact - INFO - PII Redactor initialized with 8 patterns
 2025-08-26 20:13:23 - src.utils.redact - INFO - PII Redactor initialized with 8 patterns
 2025-08-26 20:13:23 - src.utils.redact - INFO - Added custom pattern: employee_id
+2025-08-26 20:17:03 - src.http_server - INFO - Starting HTTP facade...
+2025-08-26 20:17:03 - src.utils.cache - INFO - Cache manager initialized
+2025-08-26 20:17:03 - src.http_server - INFO - Shutting down HTTP facade...
+2025-08-26 20:17:03 - src.http_server - INFO - Starting HTTP facade...
+2025-08-26 20:17:03 - src.utils.cache - INFO - Cache manager initialized
+2025-08-26 20:17:03 - src.http_server - INFO - Shutting down HTTP facade...
+2025-08-26 20:17:03 - src.http_server - INFO - Starting HTTP facade...
+2025-08-26 20:17:03 - src.utils.cache - INFO - Cache manager initialized
+2025-08-26 20:17:03 - src.http_server - INFO - Shutting down HTTP facade...
+2025-08-26 20:17:03 - src.http_server - INFO - Starting HTTP facade...
+2025-08-26 20:17:03 - src.utils.cache - INFO - Cache manager initialized
+2025-08-26 20:17:03 - src.http_server - INFO - Shutting down HTTP facade...
+2025-08-26 20:17:03 - src.utils.cache - INFO - Cache manager initialized
+2025-08-26 20:17:03 - src.utils.cache - INFO - Cache manager initialized
+2025-08-26 20:17:03 - src.tools.wrap_agent - INFO - Performing pre-analysis...
+2025-08-26 20:17:03 - src.utils.llm_client - ERROR - Ollama generation failed: Cannot connect to host localhost:11434 ssl:default [Multiple exceptions: [Errno 111] Connect call failed ('::1', 11434, 0, 0), [Errno 111] Connect call failed ('127.0.0.1', 11434)]
+2025-08-26 20:17:07 - src.utils.llm_client - ERROR - Ollama generation failed: Cannot connect to host localhost:11434 ssl:default [Multiple exceptions: [Errno 111] Connect call failed ('127.0.0.1', 11434), [Errno 111] Connect call failed ('::1', 11434, 0, 0)]
+2025-08-26 20:17:11 - src.utils.llm_client - ERROR - Ollama generation failed: Cannot connect to host localhost:11434 ssl:default [Multiple exceptions: [Errno 111] Connect call failed ('::1', 11434, 0, 0), [Errno 111] Connect call failed ('127.0.0.1', 11434)]
+2025-08-26 20:17:11 - src.tools.wrap_agent - INFO - Calling agent at <function TestIntegration.test_agent_wrapper_flow.<locals>.mock_agent at 0x7f27ef5ac040>
+2025-08-26 20:17:11 - src.tools.wrap_agent - INFO - Calling local agent function
+2025-08-26 20:17:11 - src.tools.wrap_agent - INFO - Performing post-analysis...
+2025-08-26 20:17:11 - src.utils.llm_client - ERROR - Ollama generation failed: Cannot connect to host localhost:11434 ssl:default [Multiple exceptions: [Errno 111] Connect call failed ('127.0.0.1', 11434), [Errno 111] Connect call failed ('::1', 11434, 0, 0)]
+2025-08-26 20:17:15 - src.utils.llm_client - ERROR - Ollama generation failed: Cannot connect to host localhost:11434 ssl:default [Multiple exceptions: [Errno 111] Connect call failed ('::1', 11434, 0, 0), [Errno 111] Connect call failed ('127.0.0.1', 11434)]
+2025-08-26 20:17:19 - src.utils.llm_client - ERROR - Ollama generation failed: Cannot connect to host localhost:11434 ssl:default [Multiple exceptions: [Errno 111] Connect call failed ('127.0.0.1', 11434), [Errno 111] Connect call failed ('::1', 11434, 0, 0)]
+2025-08-26 20:17:19 - src.utils.cache - INFO - Cache manager initialized
+2025-08-26 20:17:19 - src.utils.cache - INFO - Cleaned up 1 cache entries due to limit
+2025-08-26 20:17:19 - src.utils.cache - INFO - Cleaned up 1 cache entries due to limit
+2025-08-26 20:17:19 - src.utils.cache - INFO - Cleaned up 1 cache entries due to limit
+2025-08-26 20:17:19 - src.utils.cache - INFO - Cleaned up 1 cache entries due to limit
+2025-08-26 20:17:19 - src.utils.cache - INFO - Cleaned up 1 cache entries due to limit
+2025-08-26 20:17:19 - src.utils.cache - INFO - Cache manager initialized
+2025-08-26 20:17:19 - src.utils.router - INFO - No policy file found at ./config/router_policy.yaml, using defaults
+2025-08-26 20:17:19 - src.tools.wrap_agent - INFO - Performing pre-analysis...
+2025-08-26 20:17:19 - src.tools.wrap_agent - INFO - Calling agent at <function TestWrapAgentCall.test_wrap_agent_basic.<locals>.mock_agent at 0x7f27efe9d620>
+2025-08-26 20:17:19 - src.tools.wrap_agent - INFO - Calling local agent function
+2025-08-26 20:17:19 - src.tools.wrap_agent - INFO - Performing post-analysis...
+2025-08-26 20:17:19 - src.utils.router - INFO - No policy file found at ./config/router_policy.yaml, using defaults
+2025-08-26 20:17:19 - src.utils.router - INFO - No policy file found at ./config/router_policy.yaml, using defaults
+2025-08-26 20:17:19 - src.utils.redact - INFO - PII Redactor initialized with 8 patterns
+2025-08-26 20:17:19 - src.utils.redact - INFO - PII Redactor initialized with 8 patterns
+2025-08-26 20:17:19 - src.utils.redact - INFO - PII Redactor initialized with 8 patterns
+2025-08-26 20:17:19 - src.utils.redact - INFO - PII Redactor initialized with 8 patterns
+2025-08-26 20:17:19 - src.utils.redact - INFO - PII Redactor initialized with 8 patterns
+2025-08-26 20:17:19 - src.utils.redact - INFO - Added custom pattern: employee_id

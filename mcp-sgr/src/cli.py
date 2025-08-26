@@ -248,6 +248,29 @@ def cleanup(clear_cache: bool, clear_traces: bool):
     asyncio.run(run_cleanup())
 
 
+@cli.command()
+@click.option("--format", "fmt", type=click.Choice(["json", "yaml"]), default="json", help="Output format")
+@click.option("--output", "output_path", type=click.Path(), help="Output file path; stdout if omitted")
+def export_openapi(fmt: str, output_path: Optional[str]):
+    """Export OpenAPI schema from the HTTP API (json or yaml)."""
+    try:
+        from .http_server import app
+        import json as _json
+        import yaml as _yaml
+
+        schema = app.openapi()
+        content = _json.dumps(schema, indent=2) if fmt == "json" else _yaml.safe_dump(schema, sort_keys=False, allow_unicode=True)
+
+        if output_path:
+            Path(output_path).write_text(content)
+            click.echo(f"OpenAPI schema saved to {output_path}")
+        else:
+            click.echo(content)
+    except Exception as e:
+        click.echo(f"Failed to export OpenAPI: {e}")
+        raise
+
+
 def format_analysis_result(result: dict) -> str:
     """Format analysis result for human readability."""
     output = []
