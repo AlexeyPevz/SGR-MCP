@@ -7,15 +7,11 @@ from typing import Any, Dict, List
 from fastapi import APIRouter, Depends, HTTPException, Request
 
 from ...http_server import (
-    ApplySGRRequest,
-    apply_sgr_tool,  # type: ignore
     verify_api_key,
     verify_rate_limit,
-    llm_client,
-    cache_manager,
-    telemetry_manager,
     logger,
 )
+from ...http_server import ApplySGRRequest  # keep model import temporarily
 from ..services import reasoning_service
 
 router = APIRouter(prefix="/v1", tags=["reasoning"])
@@ -30,9 +26,6 @@ async def apply_sgr(
     """Apply SGR schema to analyze a task."""
     if not authorized:
         raise HTTPException(status_code=401, detail="Invalid API key")
-
-    if not llm_client or not cache_manager or not telemetry_manager:
-        raise HTTPException(status_code=503, detail="Service not initialized")
 
     try:
         result = await reasoning_service.apply_sgr_service(request)
@@ -52,9 +45,6 @@ async def batch_apply_sgr(
     """Apply SGR to multiple tasks concurrently."""
     if not authorized:
         raise HTTPException(status_code=401, detail="Invalid API key")
-
-    if not llm_client:
-        raise HTTPException(status_code=503, detail="Service not initialized")
 
     if len(requests) > 20:  # Limit batch size
         raise HTTPException(status_code=400, detail="Batch size too large (max 20)")
