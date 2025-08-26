@@ -16,6 +16,7 @@ from ...http_server import (
     telemetry_manager,
     logger,
 )
+from ..services import reasoning_service
 
 router = APIRouter(prefix="/v1", tags=["reasoning"])
 
@@ -34,12 +35,7 @@ async def apply_sgr(
         raise HTTPException(status_code=503, detail="Service not initialized")
 
     try:
-        result = await apply_sgr_tool(  # type: ignore[arg-type]
-            arguments=request.dict(),
-            llm_client=llm_client,
-            cache_manager=cache_manager,
-            telemetry=telemetry_manager,
-        )
+        result = await reasoning_service.apply_sgr_service(request)
         return result
     except Exception as e:  # pragma: no cover
         logger.error(f"Error in apply_sgr: {e}", exc_info=True)
@@ -73,12 +69,7 @@ async def batch_apply_sgr(
 
         async def process_request(req: ApplySGRRequest):
             async with semaphore:
-                return await apply_sgr_tool(  # type: ignore[arg-type]
-                    arguments=req.dict(),
-                    llm_client=llm_client,
-                    cache_manager=cache_manager,
-                    telemetry_manager=telemetry_manager,  # type: ignore[arg-type]
-                )
+                return await reasoning_service.apply_sgr_service(req)
 
         tasks = [process_request(req) for req in requests]
         results = await asyncio.gather(*tasks, return_exceptions=True)
