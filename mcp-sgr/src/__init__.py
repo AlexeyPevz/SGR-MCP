@@ -13,7 +13,13 @@ from fastapi import FastAPI
 
 def include_routers(app: FastAPI) -> None:  # pragma: no cover
     """Include all APIRouter modules into given FastAPI app."""
-    from .api.routers import reasoning, agents, prompts  # noqa: F401
+    from .api.routers import reasoning, agents, prompts, schemas, monitoring  # noqa: F401
 
-    for router in [reasoning.router, agents.router, prompts.router]:
+    for router in [
+        reasoning.router,
+        agents.router,
+        prompts.router,
+        schemas.router,
+        monitoring.router,
+    ]:
         app.include_router(router)
