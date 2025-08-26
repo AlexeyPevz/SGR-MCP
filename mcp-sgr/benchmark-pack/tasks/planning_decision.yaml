@@ -1,0 +1,169 @@
+# Planning and Decision Tasks
+
+# Architecture Tasks (6)
+- id: plan_arch_001
+  category: planning_decision
+  difficulty: architecture
+  prompt: >
+    Design a Progressive Web App (PWA) architecture for a social learning platform with these constraints:
+    - Must work offline for core features
+    - Budget: $50k for infrastructure/year
+    - Team: 3 developers (1 senior, 2 mid-level)
+    - Expected users: 100k MAU within 6 months
+    - Key features: video lessons, quizzes, discussion forums, progress tracking
+  constraints:
+    - "Offline-first architecture"
+    - "Cost-effective scaling"
+    - "Small team maintainability"
+    - "Progressive enhancement"
+  evaluation:
+    criteria_addressed: ["offline capability", "budget fit", "team capacity", "scalability"]
+    tradeoffs_explained: true
+    architecture_components: ["service workers", "IndexedDB", "CDN", "serverless", "caching strategy"]
+    implementation_phases: true
+
+- id: plan_arch_002
+  category: planning_decision
+  difficulty: architecture
+  prompt: >
+    Choose between microservices and monolithic architecture for an e-commerce platform:
+    - Current: 50k orders/month, growing 20% monthly
+    - Team: 15 developers across 3 teams
+    - Requirements: Multi-region, multiple payment providers, real-time inventory
+    - Timeline: MVP in 3 months, full launch in 6 months
+  evaluation:
+    decision_framework: true
+    pros_cons_analysis: true
+    recommendation_clear: true
+    considers: ["team structure", "timeline", "growth rate", "complexity"]
+    migration_path: true
+
+- id: plan_arch_003
+  category: planning_decision
+  difficulty: architecture
+  prompt: >
+    Design data architecture for IoT sensor network:
+    - 10,000 sensors sending data every 30 seconds
+    - Need real-time alerts and 2-year historical analysis
+    - Compliance: GDPR, data residency requirements
+    - Budget: Optimize for cost while meeting latency <2s for alerts
+  evaluation:
+    components: ["ingestion", "storage", "processing", "alerting", "archival"]
+    compliance_addressed: true
+    cost_optimization: true
+    technology_choices_justified: true
+
+- id: plan_arch_004
+  category: planning_decision
+  difficulty: architecture
+  prompt: >
+    Architect a disaster recovery solution for critical financial services:
+    - RPO: 1 minute, RTO: 5 minutes
+    - Data volume: 50TB, growing 2TB/month
+    - Compliance: SOX, PCI-DSS
+    - Current: Single AWS region
+  evaluation:
+    meets_rpo_rto: true
+    compliance_considerations: true
+    cost_breakdown: true
+    testing_strategy: true
+
+- id: plan_arch_005
+  category: planning_decision
+  difficulty: architecture
+  prompt: >
+    Design API gateway strategy for multi-tenant SaaS platform:
+    - 500+ microservices
+    - Need tenant isolation, rate limiting, API versioning
+    - Security: OAuth2, API keys, IP whitelisting
+    - Performance: <50ms added latency
+  evaluation:
+    security_addressed: true
+    performance_strategy: true
+    tenant_isolation: true
+    operational_concerns: true
+
+- id: plan_arch_006
+  category: planning_decision
+  difficulty: architecture
+  prompt: >
+    Choose ML platform architecture for recommendation engine:
+    - 10M users, 100M items
+    - Need A/B testing, real-time serving, model versioning
+    - Constraints: Reuse existing Kubernetes cluster
+    - Team: 2 ML engineers, 3 backend developers
+  evaluation:
+    platform_comparison: true
+    team_skills_considered: true
+    existing_infra_leveraged: true
+    ml_ops_practices: true
+
+# Product Decision Tasks (4)
+- id: plan_product_007
+  category: planning_decision
+  difficulty: product
+  prompt: >
+    Prioritize features for Q2 roadmap of productivity app:
+    - Available: AI summaries, offline mode, team collaboration, API integrations, mobile app
+    - Resources: 4 developers, 1 designer for 3 months
+    - Current state: 10k users, 30% monthly churn
+    - Goal: Reduce churn to 15%, increase paid conversions by 50%
+  evaluation:
+    prioritization_framework: true
+    goals_alignment: true
+    resource_allocation: true
+    success_metrics: true
+    rationale_clear: true
+
+- id: plan_product_008
+  category: planning_decision
+  difficulty: product
+  prompt: >
+    Decide pricing strategy for new B2B SaaS tool:
+    - Competitors: $50-200/user/month
+    - Our advantages: 3x faster, better UX, API-first
+    - Target: Mid-market companies (100-1000 employees)
+    - Costs: $15/user/month to operate
+  evaluation:
+    pricing_models_compared: ["per-user", "usage-based", "flat-rate", "freemium"]
+    competitor_analysis: true
+    value_proposition: true
+    profitability_analysis: true
+
+- id: plan_product_009
+  category: planning_decision
+  difficulty: product
+  prompt: >
+    Plan rollout strategy for major UI redesign:
+    - Current: 500k daily active users
+    - Risk: Muscle memory disruption
+    - Goal: Improve task completion by 20%
+    - Timeline: Complete migration in 6 weeks
+  evaluation:
+    rollout_phases: true
+    risk_mitigation: true
+    user_communication: true
+    rollback_plan: true
+    success_measurement: true
+
+- id: plan_product_010
+  category: planning_decision
+  difficulty: product
+  prompt: >
+    Choose between native mobile apps vs React Native vs PWA:
+    - Target: Consumer fitness tracking app
+    - Required: GPS, camera, push notifications, offline
+    - Team: 2 mobile developers (iOS experience)
+    - Timeline: Launch in 4 months
+    - Budget: $200k development, $50k/year maintenance
+  evaluation:
+    technical_requirements_met: true
+    team_capabilities_considered: true
+    timeline_feasibility: true
+    long_term_maintenance: true
+    platform_tradeoffs: true
+
+# Summary counts
+# Architecture: 6 tasks
+# Product: 4 tasks
+# Total: 10 tasks

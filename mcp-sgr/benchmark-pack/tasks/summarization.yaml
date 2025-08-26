@@ -1,0 +1,249 @@
+# Summarization Tasks
+
+# Single Document Tasks (6)
+- id: sum_report_001
+  category: summarization
+  difficulty: single_doc
+  prompt: "Summarize this quarterly earnings report for executive team in 2-3 paragraphs, focusing on key metrics and strategic implications."
+  document:
+    content: |
+      Q4 2023 Financial Results - TechCorp Inc.
+      
+      Revenue: $2.8B (+23% YoY), beating analyst expectations of $2.6B. Growth driven by:
+      - Cloud Services: $1.5B (+45% YoY), now 54% of total revenue
+      - Enterprise Software: $800M (+12% YoY)
+      - Consumer Products: $500M (-5% YoY), declining market share
+      
+      Operating Expenses: $2.1B (+18% YoY)
+      - R&D: $600M (+35% YoY), focused on AI/ML capabilities
+      - Sales & Marketing: $700M (+15% YoY)
+      - G&A: $300M (+8% YoY)
+      - Restructuring: $500M one-time charge for consumer division
+      
+      Net Income: $450M (16% margin), down from $520M (21% margin) YoY due to restructuring
+      
+      Cash Position: $3.2B (+$400M QoQ)
+      - Operating Cash Flow: $800M
+      - Free Cash Flow: $650M
+      - Share buyback: $200M
+      
+      Guidance Q1 2024:
+      - Revenue: $2.9-3.0B
+      - Operating Margin: 18-20%
+      - Continuing shift to subscription model
+      
+      CEO Commentary: "Strong cloud growth validates our strategic pivot. Consumer weakness expected, but enterprise demand remains robust. AI investments beginning to show ROI."
+  evaluation:
+    key_points: ["cloud growth 45%", "consumer decline", "restructuring charge", "AI investment", "subscription shift"]
+    groundedness_required: true
+    audience_appropriate: "executive"
+    length_target: "2-3 paragraphs"
+
+- id: sum_technical_002
+  category: summarization
+  difficulty: single_doc
+  prompt: "Create a technical summary of this security incident report for the engineering team, highlighting root cause and action items."
+  document:
+    content: |
+      Incident Report: Authentication Service Outage
+      Date: 2024-01-15, Duration: 47 minutes (14:23-15:10 UTC)
+      Severity: S1, Affected Users: ~2.3M (15% of user base)
+      
+      Timeline:
+      - 14:23: Alerts triggered for auth service response time >5s
+      - 14:25: On-call engineer acknowledged, began investigation
+      - 14:30: Identified database connection pool exhaustion
+      - 14:35: Attempted to increase pool size, change failed to propagate
+      - 14:45: Discovered configuration drift between primary and replica
+      - 14:55: Emergency failover to replica cluster
+      - 15:05: Service restoration confirmed
+      - 15:10: All systems normal, monitoring enhanced
+      
+      Root Cause:
+      A gradual memory leak in the connection pooling library (v2.3.1) caused connections to not be properly released. This was exacerbated by a recent traffic increase (+30% week-over-week). The leak was present for ~2 weeks but only became critical at current traffic levels.
+      
+      Contributing Factors:
+      1. Outdated pooling library with known memory leak (CVE-2023-4521)
+      2. Monitoring gap: connection pool metrics not included in dashboards
+      3. Configuration management: primary/replica configs not synchronized
+      4. Runbook outdated: failover procedure had wrong commands
+      
+      Impact:
+      - Login failures: 100% for affected region
+      - API authentication errors: cascading failures in 3 dependent services
+      - Data loss: None
+      - SLA impact: Monthly uptime dropped to 99.89% (target 99.95%)
+      
+      Action Items:
+      1. IMMEDIATE: Update pooling library to v2.4.3 (P0, assigned: TeamA)
+      2. IMMEDIATE: Add connection pool metrics to primary dashboard (P0, assigned: TeamB)
+      3. THIS WEEK: Implement config sync validation in CI/CD (P1, assigned: TeamC)
+      4. THIS WEEK: Update and test all runbooks (P1, assigned: On-call team)
+      5. THIS MONTH: Implement canary deployment for auth service (P2, assigned: Platform team)
+      
+      Lessons Learned:
+      - Need better library dependency tracking and automated CVE scanning
+      - Critical metrics must be prominently displayed
+      - Regular disaster recovery drills would have caught runbook issues
+  evaluation:
+    technical_accuracy: true
+    root_cause_identified: true
+    action_items_clear: true
+    includes: ["memory leak", "CVE", "connection pool", "failover", "monitoring gap"]
+
+- id: sum_policy_003
+  category: summarization
+  difficulty: single_doc
+  prompt: "Summarize this data privacy policy update for customer communication, emphasizing what's changing and why."
+  document:
+    content: |
+      Data Privacy Policy Update - Effective March 1, 2024
+      
+      Overview of Changes:
+      We are updating our privacy policy to enhance transparency, comply with new regulations, and reflect our improved data practices. Key changes include expanded user rights, clearer data usage explanations, and new data minimization commitments.
+      
+      1. Enhanced User Rights (NEW):
+      - Data Portability: Download all your data in standard formats (JSON/CSV)
+      - Selective Deletion: Delete specific data types while maintaining account
+      - Processing Objection: Opt-out of specific data processing activities
+      - Automated Decision Explanation: Request human review of algorithmic decisions
+      
+      2. Data Collection Changes:
+      - REMOVED: Third-party tracking pixels on marketing emails
+      - REDUCED: Location data retention from 2 years to 90 days
+      - ADDED: Explicit consent for biometric data (facial recognition in photos)
+      - CLARIFIED: How we use interaction data for product improvement
+      
+      3. Third-Party Sharing Updates:
+      - NO LONGER SHARING: Behavioral data with advertising partners
+      - NEW REQUIREMENT: Annual audits for all data processors
+      - ADDED: Public list of all third-party data recipients
+      - ENHANCED: Encryption requirements for data in transit
+      
+      4. International Data Transfers:
+      - Implemented Standard Contractual Clauses (SCCs) for EU data
+      - Added local data residency options for 15 new countries
+      - Enhanced transparency about data center locations
+      
+      5. Children's Privacy (STRENGTHENED):
+      - Increased age threshold from 13 to 16 for data processing
+      - New parental consent mechanisms
+      - Auto-deletion of minor's data upon reaching majority
+      
+      Why These Changes:
+      - Regulatory Compliance: Meeting GDPR, CCPA, and emerging privacy laws
+      - User Trust: Responding to customer feedback about data transparency
+      - Industry Leadership: Setting higher standards for data protection
+      - Technical Advancement: Leveraging new privacy-preserving technologies
+      
+      User Action Required:
+      - Review updated policy before March 1, 2024
+      - Update consent preferences in account settings
+      - Parents/guardians: Re-verify consent for users under 16
+      
+      Questions? Contact privacy@company.com or visit our Privacy Center.
+  evaluation:
+    clarity_for_users: true
+    changes_highlighted: true
+    action_items_clear: true
+    tone: "friendly and informative"
+    key_changes: ["data portability", "biometric consent", "no behavioral ads", "children 16", "90 day location"]
+
+# Additional single doc tasks (3 more for total 6)
+- id: sum_research_004
+  category: summarization
+  difficulty: single_doc
+  prompt: "Summarize this research paper abstract and findings for a general technical audience."
+
+- id: sum_meeting_005
+  category: summarization
+  difficulty: single_doc
+  prompt: "Create action-oriented summary of this product planning meeting transcript."
+
+- id: sum_legal_006
+  category: summarization
+  difficulty: single_doc
+  prompt: "Summarize this software license agreement highlighting key permissions and restrictions."
+
+# Comparative Tasks (4)
+- id: sum_compare_007
+  category: summarization
+  difficulty: comparative
+  prompt: "Compare and contrast these two cloud service proposals, highlighting key differences in pricing, features, and SLAs."
+  documents:
+    - id: proposal_a
+      title: "CloudProvider A - Enterprise Proposal"
+      content: |
+        Compute: $0.08/hour for 8-core instances, 99.95% SLA
+        Storage: $0.02/GB/month, 99.99% durability
+        Network: $0.05/GB egress, free ingress
+        Support: 24/7 phone, 1-hour response for critical
+        Features: Auto-scaling, managed Kubernetes, 50+ regions
+        Contract: 1-year minimum, 20% discount for 3-year commit
+        
+    - id: proposal_b
+      title: "CloudProvider B - Enterprise Proposal"
+      content: |
+        Compute: $0.10/hour for 8-core instances, 99.99% SLA
+        Storage: $0.015/GB/month, 99.999% durability
+        Network: $0.03/GB egress, free ingress
+        Support: 24/7 phone + dedicated TAM, 30-min response
+        Features: Auto-scaling, managed everything, 35 regions
+        Contract: Month-to-month available, 25% discount for 3-year
+  evaluation:
+    comparison_points: ["pricing", "SLA differences", "support levels", "contract flexibility", "geographic coverage"]
+    identifies_tradeoffs: true
+    recommendation_provided: true
+
+- id: sum_compare_008
+  category: summarization
+  difficulty: comparative
+  prompt: "Analyze these two incident postmortems to identify common patterns and differing root causes."
+  documents:
+    - id: incident_1
+      content: "Database outage due to query optimizer bug after statistics update. Duration: 2 hours. Fix: Rolled back optimizer statistics."
+    - id: incident_2
+      content: "Database outage due to storage array failure during maintenance. Duration: 4 hours. Fix: Failed over to secondary site."
+  evaluation:
+    common_patterns: ["database outage", "production impact"]
+    differences: ["software vs hardware", "rollback vs failover", "duration"]
+    insights_provided: true
+
+- id: sum_compare_009
+  category: summarization
+  difficulty: comparative
+  prompt: "Compare these API documentation versions highlighting breaking changes and migration requirements."
+  documents:
+    - id: api_v1
+      content: |
+        GET /users/{id} returns: {"id": 123, "name": "John", "email": "john@example.com"}
+        POST /users requires: {"name": string, "email": string}
+        Rate limit: 100 requests/minute
+    - id: api_v2
+      content: |
+        GET /users/{id} returns: {"id": 123, "profile": {"name": "John"}, "contact": {"email": "john@example.com"}}
+        POST /users requires: {"profile": {"name": string}, "contact": {"email": string}, "preferences": object}
+        Rate limit: 1000 requests/minute with burst
+  evaluation:
+    breaking_changes_identified: true
+    migration_path_suggested: true
+    improvements_noted: ["rate limit increase", "structured data"]
+
+- id: sum_compare_010
+  category: summarization
+  difficulty: comparative
+  prompt: "Synthesize insights from these two market analysis reports on developer tools adoption."
+  documents:
+    - id: report_2023
+      content: "2023: GitHub 90% market share, AI tools emerging (15% adoption), cloud IDEs growing (25% usage)"
+    - id: report_2024
+      content: "2024: GitHub 85% market share, AI tools mainstream (67% adoption), cloud IDEs plateau (27% usage)"
+  evaluation:
+    trends_identified: ["AI tools growth", "GitHub share decline", "cloud IDE plateau"]
+    year_over_year: true
+    insights: ["AI disruption", "market maturation"]
+
+# Summary counts
+# Single Document: 6 tasks
+# Comparative: 4 tasks
+# Total: 10 tasks
