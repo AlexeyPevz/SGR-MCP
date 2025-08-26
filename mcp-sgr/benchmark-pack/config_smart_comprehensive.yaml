@@ -1,0 +1,139 @@
+name: "Smart Comprehensive SGR Benchmark"
+api_key_env: "OPENROUTER_API_KEY"
+output_dir: "reports"
+parallel_workers: 3
+max_retries: 2
+timeout: 120
+
+# Smart model selection - focus on value
+models:
+  # One top model for reference (cheapest)
+  - name: "GPT-4o-Mini"
+    id: "openai/gpt-4o-mini"
+    cost_per_1k_input: 0.15
+    cost_per_1k_output: 0.6
+    supports_json: true
+    
+  # Mid-tier models (good balance)
+  - name: "GPT-3.5-Turbo"
+    id: "openai/gpt-3.5-turbo"
+    cost_per_1k_input: 0.5
+    cost_per_1k_output: 1.5
+    supports_json: true
+    
+  - name: "Claude-3-Haiku"
+    id: "anthropic/claude-3-haiku"
+    cost_per_1k_input: 0.25
+    cost_per_1k_output: 1.25
+    supports_json: true
+    
+  # Budget models (our heroes!)
+  - name: "Mistral-7B-Free"
+    id: "mistralai/mistral-7b-instruct:free"
+    cost_per_1k_input: 0.0
+    cost_per_1k_output: 0.0
+    supports_json: true
+    
+  - name: "Ministral-8B"
+    id: "ministral/ministral-8b-2410"
+    cost_per_1k_input: 0.02
+    cost_per_1k_output: 0.02
+    supports_json: true
+    
+  - name: "DeepSeek-Chat"
+    id: "deepseek/deepseek-chat"
+    cost_per_1k_input: 0.14
+    cost_per_1k_output: 0.28
+    supports_json: true
+    
+  - name: "Qwen-2.5-7B"
+    id: "qwen/qwen-2.5-7b-instruct"
+    cost_per_1k_input: 0.15
+    cost_per_1k_output: 0.15
+    supports_json: true
+    
+  - name: "Qwen-2.5-32B"
+    id: "qwen/qwen-2.5-32b-instruct"
+    cost_per_1k_input: 0.65
+    cost_per_1k_output: 0.65
+    supports_json: true
+    
+  # Additional free models
+  - name: "Llama-3.2-3B-Free"
+    id: "meta-llama/llama-3.2-3b-instruct:free"
+    cost_per_1k_input: 0.0
+    cost_per_1k_output: 0.0
+    supports_json: true
+
+# Test categories
+test_categories:
+  - name: "codegen"
+    weight: 2.0  # Focus on code
+  - name: "rag"
+    weight: 1.0
+  - name: "summarization"
+    weight: 1.0
+  - name: "planning"
+    weight: 1.0
+  - name: "data"
+    weight: 1.0
+  - name: "agent"
+    weight: 1.0
+
+# Key tasks for comprehensive testing (25 tasks)
+tasks:
+  # Code generation - 10 tasks (focus area)
+  - "code_cli_converter_001"
+  - "code_string_utils_002"  
+  - "code_rest_api_003"
+  - "code_graph_algos_004"
+  - "code_jwt_auth_005"
+  - "code_bug_fix_006"
+  - "code_sql_query_007"
+  - "code_react_component_008"
+  - "code_python_class_009"
+  - "code_test_generation_010"
+  
+  # RAG QA - 4 tasks
+  - "rag_factual_qa_001"
+  - "rag_multidoc_synthesis_002"
+  - "rag_conflicting_sources_003"
+  - "rag_citation_required_005"
+  
+  # Summarization - 3 tasks
+  - "sum_report_001"
+  - "sum_technical_doc_002"
+  - "sum_comparative_docs_005"
+  
+  # Planning - 3 tasks
+  - "plan_pwa_architecture_001"
+  - "plan_ml_pipeline_002"
+  - "plan_tech_stack_006"
+  
+  # Data ETL - 3 tasks
+  - "data_email_validation_001"
+  - "data_csv_to_json_003"
+  - "data_fuzzy_matching_004"
+  
+  # Agent workflow - 2 tasks
+  - "agent_bug_to_patch_001"
+  - "agent_rag_chain_004"
+
+# All SGR modes
+sgr_modes:
+  - "off"
+  - "lite"
+  - "full"
+
+# Experiment settings
+experiment:
+  runs_per_task: 1  # Single run to save cost
+  max_tokens: 1500
+  temperature: 0.7
+  save_artifacts: true
+  
+# Cost limits
+cost_limits:
+  total_budget: 1.0  # $1 total budget
+  per_model_limit: 0.25
+  abort_on_limit: true
