@@ -7,9 +7,12 @@ from contextlib import asynccontextmanager
 from typing import Any, Dict, List, Optional
 
 import uvicorn
-from fastapi import Depends, FastAPI, Header, HTTPException, Request
+from fastapi import Depends, FastAPI, Header, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
+import yaml
+import re
+import jwt
 
 from .tools import apply_sgr_tool, enhance_prompt_tool, learn_schema_tool, wrap_agent_call_tool
 from .utils.cache import CacheManager
@@ -91,12 +94,13 @@ llm_client: Optional[LLMClient] = None
 cache_manager: Optional[CacheManager] = None
 telemetry_manager: Optional[TelemetryManager] = None
 rate_limiter: Optional[SimpleRateLimiter] = None
+_redis_client = None  # type: ignore[var-annotated]
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Manage application lifecycle."""
-    global llm_client, cache_manager, telemetry_manager, rate_limiter
+    global llm_client, cache_manager, telemetry_manager, rate_limiter, _redis_client
 
     # Startup
     logger.info("Starting HTTP facade...")
@@ -107,10 +111,37 @@ async def lifespan(app: FastAPI):
     await cache_manager.initialize()
     await telemetry_manager.initialize()
 
-    # Rate limiter
+    # Rate limiter (memory or redis)
     rate_enabled = os.getenv("RATE_LIMIT_ENABLED", "false").lower() == "true"
     max_rpm = int(os.getenv("RATE_LIMIT_MAX_RPM", "120"))
-    rate_limiter = SimpleRateLimiter(rate_enabled, max_rpm)
+    backend = os.getenv("RATE_LIMIT_BACKEND", "memory").lower()
+    if backend == "redis" and rate_enabled:
+        try:
+            import redis.asyncio as aioredis  # type: ignore
+
+            redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+            # Global assignments
+            global _redis_client
+            _redis_client = aioredis.from_url(redis_url, decode_responses=True)
+
+            class RedisRateLimiter:
+                def __init__(self, client, max_rpm: int):
+                    self.client = client
+                    self.max_rpm = max_rpm
+
+                async def allow(self, key: str) -> bool:
+                    # Key per minute per key
+                    minute_key = f"rate:{key}:{int(time.time() // 60)}"
+                    count = await self.client.incr(minute_key)
+                    if count == 1:
+                        await self.client.expire(minute_key, 65)
+                    return int(count) <= self.max_rpm
+
+            rate_limiter = RedisRateLimiter(_redis_client, max_rpm)  # type: ignore[assignment]
+        except Exception:
+            rate_limiter = SimpleRateLimiter(rate_enabled, max_rpm)
+    else:
+        rate_limiter = SimpleRateLimiter(rate_enabled, max_rpm)
 
     yield
 
@@ -122,6 +153,11 @@ async def lifespan(app: FastAPI):
         await cache_manager.close()
     if telemetry_manager:
         await telemetry_manager.close()
+    if _redis_client is not None:
+        try:
+            await _redis_client.close()
+        except Exception:
+            pass
 
 
 # Create FastAPI app
@@ -147,14 +183,45 @@ app.add_middleware(
 
 
 # Optional API key authentication
-async def verify_api_key(x_api_key: Optional[str] = Header(default=None)) -> bool:
-    """Verify API key if configured or required."""
-    expected_key = os.getenv("HTTP_AUTH_TOKEN")
+async def verify_api_key(x_api_key: Optional[str] = Header(default=None), authorization: Optional[str] = Header(default=None)) -> bool:
+    """Verify auth based on configured mode: token (default) or jwt.
+
+    - token mode: uses x-api-key header and HTTP_AUTH_TOKEN
+    - jwt mode: checks Authorization: Bearer <token> against HTTP_JWT_SECRET (HS256)
+    Both modes may co-exist; passing either valid credential grants access.
+    """
     require_auth = os.getenv("HTTP_REQUIRE_AUTH", "false").lower() == "true"
-    if not require_auth and not expected_key:
-        return True  # No auth enforced
+    if not require_auth:
+        return True
+
+    # Token auth
+    expected_key = os.getenv("HTTP_AUTH_TOKEN")
     if expected_key and x_api_key == expected_key:
         return True
+
+    # JWT auth (optional)
+    mode = os.getenv("HTTP_AUTH_MODE", "token").lower()
+    if mode == "jwt" and authorization:
+        match = re.match(r"^Bearer\s+(.+)$", authorization.strip(), re.IGNORECASE)
+        if match:
+            token = match.group(1)
+            try:
+                secret = os.getenv("HTTP_JWT_SECRET")
+                if not secret:
+                    return False
+                options = {"verify_aud": False}
+                issuer = os.getenv("HTTP_JWT_ISSUER")
+                audience = os.getenv("HTTP_JWT_AUDIENCE")
+                kwargs = {"algorithms": ["HS256"], "options": options}
+                if issuer:
+                    kwargs["issuer"] = issuer
+                if audience:
+                    kwargs["audience"] = audience
+                jwt.decode(token, secret, **kwargs)  # type: ignore[arg-type]
+                return True
+            except Exception:
+                return False
+
     return False
 
 
@@ -325,6 +392,18 @@ async def get_traces(
         return []
 
     return await cache_manager.get_recent_traces(limit=limit, tool_name=tool_name)
+
+
+@app.get("/openapi.yaml")
+async def openapi_yaml():
+    """Serve OpenAPI schema in YAML."""
+    try:
+        schema = app.openapi()
+        content = yaml.safe_dump(schema, sort_keys=False, allow_unicode=True)
+        return Response(content=content, media_type="application/yaml")
+    except Exception as e:
+        logger.error(f"Failed to render OpenAPI YAML: {e}")
+        raise HTTPException(status_code=500, detail="Failed to render OpenAPI")
 
 
 def run_http_server(host: str = "127.0.0.1", port: int = 8080):
