@@ -1,0 +1,183 @@
+# MCP-SGR Router Policy v2
+# Optimized for models with structured output support
+
+version: "2.0"
+description: "Routing policy optimized for structured output models"
+
+# Model capabilities and costs
+models:
+  # Premium models - excellent structured output support
+  claude-3.5-sonnet:
+    backend: openrouter
+    supports_structured: true
+    cost_per_1k: 0.003
+    quality_score: 0.95
+    max_tokens: 8192
+    
+  claude-3.5-haiku:
+    backend: openrouter
+    supports_structured: true
+    cost_per_1k: 0.001
+    quality_score: 0.90
+    max_tokens: 8192
+    
+  gpt-4o:
+    backend: openrouter
+    supports_structured: true
+    cost_per_1k: 0.0025
+    quality_score: 0.95
+    max_tokens: 4096
+    
+  # Budget models - good structured output
+  gpt-4o-mini:
+    backend: openrouter
+    supports_structured: true
+    cost_per_1k: 0.00015
+    quality_score: 0.85
+    max_tokens: 4096
+    notes: "Sometimes rejects complex schemas"
+    
+  gemini-flash-1.5:
+    backend: openrouter
+    supports_structured: true
+    cost_per_1k: 0.0003
+    quality_score: 0.85
+    max_tokens: 8192
+    
+  # Free tier - limited availability
+  gemini-2.0-flash-exp:free:
+    backend: openrouter
+    supports_structured: true
+    cost_per_1k: 0.0
+    quality_score: 0.80
+    max_tokens: 8192
+    notes: "Rate limited, use sparingly"
+    
+  # NOT RECOMMENDED - poor structured output
+  llama-3.1-8b:
+    backend: openrouter
+    supports_structured: false
+    cost_per_1k: 0.00018
+    quality_score: 0.30
+    max_tokens: 4096
+    notes: "DO NOT USE for SGR"
+
+# Routing rules based on task requirements
+routing_rules:
+  # High quality requirements
+  - name: "Complex Analysis"
+    condition: |
+      task_type in ["analysis", "planning"] and 
+      budget == "full" and
+      complexity == "high"
+    model: "claude-3.5-sonnet"
+    fallback: ["gpt-4o", "claude-3.5-haiku"]
+    
+  - name: "Standard Analysis"
+    condition: |
+      task_type in ["analysis", "planning"] and
+      budget == "lite"
+    model: "claude-3.5-haiku"
+    fallback: ["gpt-4o-mini", "gemini-flash-1.5"]
+    
+  - name: "Code Generation"
+    condition: |
+      task_type == "code_generation"
+    model: "gpt-4o"
+    fallback: ["claude-3.5-sonnet"]
+    
+  - name: "Budget Tasks"
+    condition: |
+      budget == "lite" and
+      complexity == "low"
+    model: "gpt-4o-mini"
+    fallback: ["gemini-flash-1.5"]
+    
+  - name: "Free Tier (Testing Only)"
+    condition: |
+      cost_sensitive == true and
+      environment == "development"
+    model: "gemini-2.0-flash-exp:free"
+    fallback: ["gpt-4o-mini"]
+    
+  # Default rule - always use structured output model
+  - name: "Default"
+    condition: "true"
+    model: "claude-3.5-haiku"
+    fallback: ["gpt-4o-mini"]
+
+# Task classification
+task_classification:
+  analysis:
+    keywords: ["analyze", "review", "evaluate", "assess", "examine"]
+    default_complexity: "medium"
+    
+  planning:
+    keywords: ["plan", "design", "architect", "roadmap", "strategy"]
+    default_complexity: "high"
+    
+  code_generation:
+    keywords: ["code", "implement", "function", "program", "script"]
+    default_complexity: "medium"
+    
+  decision:
+    keywords: ["decide", "choose", "select", "compare", "recommend"]
+    default_complexity: "medium"
+    
+  summarization:
+    keywords: ["summarize", "brief", "overview", "synopsis"]
+    default_complexity: "low"
+
+# Complexity detection
+complexity_detection:
+  high:
+    - "distributed"
+    - "architecture"
+    - "scalability"
+    - "enterprise"
+    - "production"
+    - "security"
+    
+  medium:
+    - "api"
+    - "database"
+    - "optimization"
+    - "integration"
+    
+  low:
+    - "simple"
+    - "basic"
+    - "example"
+    - "demo"
+
+# Fallback strategy
+fallback_strategy:
+  max_retries: 2
+  on_error:
+    - log_error
+    - try_fallback_model
+    - reduce_schema_complexity
+    - use_baseline_mode
+    
+# Monitoring and alerts
+monitoring:
+  track_metrics:
+    - success_rate
+    - average_latency
+    - cost_per_request
+    - schema_validation_rate
+    
+  alerts:
+    - condition: "success_rate < 0.8"
+      action: "notify_admin"
+    - condition: "average_latency > 5000"
+      action: "review_model_selection"
+
+# Schema simplification rules
+schema_simplification:
+  for_models_without_structured_output:
+    - flatten_nested_objects
+    - convert_complex_types_to_strings
+    - remove_enum_constraints
+    - remove_pattern_validations
+    - make_all_fields_optional
