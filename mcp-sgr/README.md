@@ -123,10 +123,12 @@ python scripts/benchmark_runner.py --config configs/config_extended.yaml
 
 ## 📚 Документация
 
-- [Консолидированные результаты](CONSOLIDATED_BENCHMARK_RESULTS.md)
-- [Финальный отчет](FINAL_SGR_BENCHMARK_REPORT.md)
-- [Статус проекта](PROJECT_STATUS.md)
-- [Benchmark Pack README](benchmark-pack/README.md)
+- [🚀 Quick Start Guide](QUICKSTART_GUIDE.md) - Начните за 5 минут!
+- [🔌 API Documentation](API_DOCUMENTATION.md) - Полное API описание
+- [📊 Benchmark Results](CONSOLIDATED_BENCHMARK_RESULTS.md) - Результаты тестов
+- [📋 Project Review](COMPREHENSIVE_PROJECT_REVIEW.md) - Полное ревью проекта
+- [🏗️ Project Structure](PROJECT_STRUCTURE.md) - Структура проекта
+- [📦 Benchmark Pack](benchmark-pack/README.md) - Система тестирования
 
 ## 🤝 Вклад в проект
 

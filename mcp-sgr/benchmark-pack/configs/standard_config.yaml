@@ -1,0 +1,80 @@
+# Standard Benchmark Configuration Template
+# This is the recommended configuration format
+
+# Models to test
+models:
+  # Free models (recommended for testing)
+  - id: "mistralai/mistral-7b-instruct:free"
+    name: "Mistral-7B-Free"
+    type: "free"
+    cost_per_1k: 0.0
+    
+  # Budget models  
+  - id: "ministral/ministral-8b-2410"
+    name: "Ministral-8B"
+    type: "budget"
+    cost_per_1k: 0.00002
+    
+  - id: "deepseek/deepseek-chat"
+    name: "DeepSeek-Chat"
+    type: "budget"
+    cost_per_1k: 0.00014
+    
+  # Mid-tier models
+  - id: "openai/gpt-3.5-turbo"
+    name: "GPT-3.5-Turbo"
+    type: "mid"
+    cost_per_1k: 0.0005
+    
+  # Premium models (use sparingly)
+  - id: "openai/gpt-4o"
+    name: "GPT-4o"
+    type: "premium"
+    cost_per_1k: 0.0025
+
+# SGR modes to test
+sgr_modes:
+  - name: "off"
+    description: "Baseline without SGR"
+    
+  - name: "lite"
+    description: "Lightweight SGR (recommended)"
+    schema_fields: ["task_understanding", "solution"]
+    
+  - name: "full"
+    description: "Comprehensive SGR"
+    schema_fields: ["requirements_analysis", "approach", "implementation", "validation"]
+
+# Task categories
+categories:
+  - name: "codegen"
+    description: "Code generation tasks"
+    
+  - name: "rag"
+    description: "RAG QA tasks"
+    
+  - name: "summarization"
+    description: "Document summarization"
+
+# Test settings
+test_settings:
+  max_retries: 2
+  timeout: 60
+  temperature: 0.7
+  max_tokens: 1500
+
+# Evaluation settings
+evaluation:
+  metrics:
+    - accuracy
+    - completeness
+    - coherence
+  composite_scoring: true
+
+# Reporting settings
+reporting:
+  formats:
+    - json
+    - markdown
+  include_artifacts: false
+  visualization: true
