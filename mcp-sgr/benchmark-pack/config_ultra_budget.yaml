@@ -1,7 +1,3 @@
-cost_estimates:
-  cheap_models_cost: $0.17
-  free_models_cost: $0.00
-  total_estimated: < $0.20
 evaluation:
   max_tokens: 2000
   runs_per_task: 1
@@ -28,16 +24,6 @@ models:
   id: qwen/qwen-2.5-7b-instruct
   name: Qwen-2.5-7B
   type: small
-quick_test:
-  models:
-  - mistralai/mistral-7b-instruct:free
-  - deepseek/deepseek-chat
-  modes:
-  - 'off'
-  - lite
-  tasks:
-  - code_simple_001
-  - rag_simple_001
 reporting:
   formats:
   - markdown

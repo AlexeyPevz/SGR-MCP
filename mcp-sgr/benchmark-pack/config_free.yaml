@@ -79,21 +79,6 @@ evaluation:
   temperature: 0.1
   max_tokens: 2000  # Reduced from 4000
   timeout: 60  # Reduced from 120
-  
-cost_estimates:
-  # With 14 tasks × 6 models × 3 modes × 1 run = 252 API calls
-  # Average ~2000 tokens per call = 504,000 tokens total
-  
-  free_models_cost: "$0.00"  # Mistral, Gemma, Llama - completely free
-  cheap_models_cost: "$0.17"  # GPT-3.5, DeepSeek, Qwen
-  total_estimated: "< $0.20"  # Less than a cup of coffee!
-  
-quick_test:
-  # Even smaller subset for initial testing
-  tasks: ["code_simple_001", "rag_simple_001"]
-  models: ["mistralai/mistral-7b-instruct:free", "deepseek/deepseek-chat"]
-  modes: ["off", "lite"]
-  # Total: 2 tasks × 2 models × 2 modes = 8 API calls (~$0.002)
 
 reporting:
   formats: ["markdown", "json"]
