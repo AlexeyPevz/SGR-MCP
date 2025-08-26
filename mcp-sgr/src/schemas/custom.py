@@ -6,6 +6,7 @@ from typing import Any, Dict, List
 import jsonschema
 
 from .base import BaseSchema, SchemaField, ValidationResult
+from .builder import SchemaBuilder  # re-export for backwards compatibility
 
 logger = logging.getLogger(__name__)
 
@@ -108,3 +109,6 @@ class CustomSchema(BaseSchema):
             confidence = (confidence + required_ratio) / 2
 
         return min(1.0, max(0.0, confidence))
+
+
+__all__ = ["CustomSchema", "SchemaBuilder"]

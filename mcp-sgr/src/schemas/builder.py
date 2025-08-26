@@ -149,17 +149,20 @@ class SchemaBuilder:
 
         return self
 
-    def build(self) -> Dict[str, Any]:
-        """Build and return the final schema.
+    def build(self):
+        """Build and return a CustomSchema instance for the accumulated schema.
 
         Returns:
-            Complete JSON schema
+            CustomSchema: wrapper providing to_json_schema() and validation
         """
         # Remove empty required array
         if not self.schema["required"]:
             del self.schema["required"]
 
-        return self.schema
+        # Import locally to avoid circular import at module load time
+        from .custom import CustomSchema
+
+        return CustomSchema(self.schema)
 
     def to_json_schema(self) -> Dict[str, Any]:
         """Alias for build() for compatibility.
