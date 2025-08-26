@@ -1,0 +1,224 @@
+{
+  "timestamp": "20250826_122839",
+  "models_tested": 5,
+  "tasks_tested": 3,
+  "results": [
+    {
+      "model": "Qwen-2.5-72B",
+      "size": "72B",
+      "task": "code_review",
+      "baseline_score": 9.5,
+      "sgr_score": 9,
+      "improvement": -5.263157894736842,
+      "baseline_cost": 0.00043079999999999995,
+      "sgr_cost": 0.0005237999999999999,
+      "baseline_success": true,
+      "sgr_success": true
+    },
+    {
+      "model": "DeepSeek-V2.5",
+      "size": "236B",
+      "task": "code_review",
+      "baseline_score": 10,
+      "sgr_score": 9,
+      "improvement": -10.0,
+      "baseline_cost": 0.00021755999999999997,
+      "sgr_cost": 0.00023113999999999999,
+      "baseline_success": true,
+      "sgr_success": true
+    },
+    {
+      "model": "Mixtral-8x7B",
+      "size": "47B",
+      "task": "code_review",
+      "baseline_score": 5.5,
+      "sgr_score": 0,
+      "improvement": -100.0,
+      "baseline_cost": 0.00019967999999999999,
+      "sgr_cost": 0.00049272,
+      "baseline_success": true,
+      "sgr_success": false
+    },
+    {
+      "model": "Qwen-2.5-7B",
+      "size": "7B",
+      "task": "code_review",
+      "baseline_score": 8.0,
+      "sgr_score": 8,
+      "improvement": 0.0,
+      "baseline_cost": 6.341999999999999e-05,
+      "sgr_cost": 0.00010346,
+      "baseline_success": true,
+      "sgr_success": true
+    },
+    {
+      "model": "Gemma-2-9B",
+      "size": "9B",
+      "task": "code_review",
+      "baseline_score": 5.5,
+      "sgr_score": 5,
+      "improvement": -9.090909090909092,
+      "baseline_cost": 0.00010580000000000001,
+      "sgr_cost": 0.0001759,
+      "baseline_success": true,
+      "sgr_success": true
+    },
+    {
+      "model": "Qwen-2.5-72B",
+      "size": "72B",
+      "task": "system_design",
+      "baseline_score": 10,
+      "sgr_score": 8,
+      "improvement": -20.0,
+      "baseline_cost": 0.00045509999999999995,
+      "sgr_cost": 0.0006828,
+      "baseline_success": true,
+      "sgr_success": true
+    },
+    {
+      "model": "DeepSeek-V2.5",
+      "size": "236B",
+      "task": "system_design",
+      "baseline_score": 10,
+      "sgr_score": 8,
+      "improvement": -20.0,
+      "baseline_cost": 0.00019753999999999998,
+      "sgr_cost": 0.0002646,
+      "baseline_success": true,
+      "sgr_success": true
+    },
+    {
+      "model": "Mixtral-8x7B",
+      "size": "47B",
+      "task": "system_design",
+      "baseline_score": 10,
+      "sgr_score": 8,
+      "improvement": -20.0,
+      "baseline_cost": 0.0002268,
+      "sgr_cost": 0.00050088,
+      "baseline_success": true,
+      "sgr_success": true
+    },
+    {
+      "model": "Qwen-2.5-7B",
+      "size": "7B",
+      "task": "system_design",
+      "baseline_score": 10,
+      "sgr_score": 8,
+      "improvement": -20.0,
+      "baseline_cost": 0.00010346,
+      "sgr_cost": 0.00011431,
+      "baseline_success": true,
+      "sgr_success": true
+    },
+    {
+      "model": "Gemma-2-9B",
+      "size": "9B",
+      "task": "system_design",
+      "baseline_score": 10,
+      "sgr_score": 8,
+      "improvement": -20.0,
+      "baseline_cost": 0.00011860000000000001,
+      "sgr_cost": 0.0001908,
+      "baseline_success": true,
+      "sgr_success": true
+    },
+    {
+      "model": "Qwen-2.5-72B",
+      "size": "72B",
+      "task": "debugging",
+      "baseline_score": 10,
+      "sgr_score": 8,
+      "improvement": -20.0,
+      "baseline_cost": 0.00032339999999999995,
+      "sgr_cost": 0.0004437,
+      "baseline_success": true,
+      "sgr_success": true
+    },
+    {
+      "model": "DeepSeek-V2.5",
+      "size": "236B",
+      "task": "debugging",
+      "baseline_score": 10,
+      "sgr_score": 8,
+      "improvement": -20.0,
+      "baseline_cost": 0.00010612,
+      "sgr_cost": 0.00018144,
+      "baseline_success": true,
+      "sgr_success": true
+    },
+    {
+      "model": "Mixtral-8x7B",
+      "size": "47B",
+      "task": "debugging",
+      "baseline_score": 5.5,
+      "sgr_score": 8,
+      "improvement": 45.45454545454545,
+      "baseline_cost": 0.00017256,
+      "sgr_cost": 0.00031608000000000005,
+      "baseline_success": true,
+      "sgr_success": true
+    },
+    {
+      "model": "Qwen-2.5-7B",
+      "size": "7B",
+      "task": "debugging",
+      "baseline_score": 10,
+      "sgr_score": 8,
+      "improvement": -20.0,
+      "baseline_cost": 7.090999999999998e-05,
+      "sgr_cost": 7.685999999999999e-05,
+      "baseline_success": true,
+      "sgr_success": true
+    },
+    {
+      "model": "Gemma-2-9B",
+      "size": "9B",
+      "task": "debugging",
+      "baseline_score": 8.0,
+      "sgr_score": 8,
+      "improvement": 0.0,
+      "baseline_cost": 6.88e-05,
+      "sgr_cost": 0.00012440000000000002,
+      "baseline_success": true,
+      "sgr_success": true
+    }
+  ],
+  "model_summaries": [
+    {
+      "model": "Qwen-2.5-72B",
+      "baseline": 9.833333333333334,
+      "sgr": 8.333333333333334,
+      "improvement": -15.087719298245615,
+      "cost": 0.0028595999999999995
+    },
+    {
+      "model": "DeepSeek-V2.5",
+      "baseline": 10.0,
+      "sgr": 8.333333333333334,
+      "improvement": -16.666666666666668,
+      "cost": 0.0011984
+    },
+    {
+      "model": "Mixtral-8x7B",
+      "baseline": 7.0,
+      "sgr": 5.333333333333333,
+      "improvement": -24.848484848484848,
+      "cost": 0.0019087199999999998
+    },
+    {
+      "model": "Qwen-2.5-7B",
+      "baseline": 9.333333333333334,
+      "sgr": 8.0,
+      "improvement": -13.333333333333334,
+      "cost": 0.00053242
+    },
+    {
+      "model": "Gemma-2-9B",
+      "baseline": 7.833333333333333,
+      "sgr": 7.0,
+      "improvement": -9.696969696969697,
+      "cost": 0.0007843
+    }
+  ]
+}

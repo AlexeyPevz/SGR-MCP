@@ -1,0 +1,235 @@
+# RAG Q&A Tasks
+
+# Base Tasks (12)
+- id: rag_api_security_001
+  category: rag_qa
+  difficulty: base
+  prompt: "What are the security requirements for API authentication in our system?"
+  documents:
+    - id: doc1
+      content: "API Security Guidelines v2.0: All APIs must use OAuth2.0 or JWT tokens. Tokens must expire within 1 hour for standard users and 15 minutes for admin users. All communication must use HTTPS/TLS 1.2+."
+    - id: doc2
+      content: "Authentication Best Practices: Use bcrypt for password hashing with minimum 12 rounds. Implement rate limiting on login endpoints (10 attempts per minute). Log all authentication attempts with IP and timestamp."
+    - id: doc3
+      content: "Compliance Requirements: Store API keys encrypted at rest. Rotate signing keys every 90 days. Implement multi-factor authentication for admin accounts."
+  evaluation:
+    required_mentions: ["OAuth2.0/JWT", "token expiration", "HTTPS", "bcrypt", "rate limiting"]
+    citation_required: true
+    coverage_threshold: 0.8
+
+- id: rag_data_retention_002
+  category: rag_qa
+  difficulty: base
+  prompt: "What is our data retention policy for user logs and backups?"
+  documents:
+    - id: doc1
+      content: "Data Retention Policy (Updated 2024): User activity logs must be retained for 90 days for operational purposes. After 90 days, logs should be archived to cold storage for 1 year, then deleted."
+    - id: doc2
+      content: "Backup Strategy: Database backups are performed daily and retained for 30 days. Weekly backups are kept for 6 months. Monthly backups are retained for 2 years."
+    - id: doc3
+      content: "GDPR Compliance: User personal data must be deletable upon request. Anonymized logs may be retained indefinitely for analytics."
+  evaluation:
+    required_mentions: ["90 days operational", "1 year archive", "30 days daily backup", "GDPR"]
+    faithfulness_threshold: 0.9
+
+- id: rag_deployment_process_003
+  category: rag_qa
+  difficulty: base
+  prompt: "Describe the deployment process for production releases."
+  documents:
+    - id: doc1
+      content: "Deployment Guide: All production deployments must go through: 1) Code review by 2 engineers, 2) Automated testing in staging, 3) Security scan, 4) Approval from team lead, 5) Blue-green deployment with rollback plan."
+    - id: doc2
+      content: "CI/CD Pipeline: Commits to main branch trigger automated builds. Staging deployment happens automatically after tests pass. Production requires manual approval and happens during maintenance windows (Tue/Thu 2-4 AM UTC)."
+    - id: doc3
+      content: "Rollback Procedures: Keep previous version running for 24 hours. Monitor error rates and performance. Automatic rollback triggers if error rate exceeds 5% or response time degrades by 50%."
+  evaluation:
+    process_steps: ["code review", "staging test", "security scan", "approval", "blue-green"]
+    citation_accuracy: 0.85
+
+# Adversarial Tasks (8)
+- id: rag_cache_conflict_004
+  category: rag_qa
+  difficulty: adversarial
+  prompt: "What is the recommended cache TTL for user session data?"
+  documents:
+    - id: doc1
+      date: "2020-01-15"
+      content: "Legacy System Guide: User sessions should be cached for 24 hours to reduce database load. This provides good performance for most use cases."
+    - id: doc2
+      date: "2023-06-20"
+      content: "Security Update: Due to recent security concerns, user session cache TTL has been reduced to 1 hour maximum. This limits exposure if tokens are compromised."
+    - id: doc3
+      date: "2022-03-10"
+      content: "Performance Tuning Guide: For optimal performance, cache user sessions for 4-6 hours. This balances security with user experience."
+  evaluation:
+    conflict_detection: true
+    date_awareness: true
+    correct_answer: "1 hour (most recent security update)"
+    reasoning_required: ["identifies conflict", "uses most recent", "explains security rationale"]
+
+- id: rag_incomplete_info_005
+  category: rag_qa
+  difficulty: adversarial
+  prompt: "What are the rate limits for our GraphQL API?"
+  documents:
+    - id: doc1
+      content: "REST API Rate Limits: Standard users: 100 requests/minute. Premium users: 1000 requests/minute. Enterprise: unlimited with fair use policy."
+    - id: doc2
+      content: "API Overview: We support both REST and GraphQL endpoints. GraphQL allows more efficient data fetching with single requests."
+    - id: doc3
+      content: "Performance Guidelines: GraphQL queries should be optimized to avoid N+1 problems. Use DataLoader pattern for batching."
+  evaluation:
+    detects_missing_info: true
+    expected_response: "No specific GraphQL rate limits found"
+    avoids_hallucination: true
+    suggests_clarification: true
+
+- id: rag_outdated_mixed_006
+  category: rag_qa
+  difficulty: adversarial
+  prompt: "What database technology should we use for a new microservice?"
+  documents:
+    - id: doc1
+      date: "2019-01-01"
+      content: "Technology Standards: All new services must use MySQL 5.7 as the primary database. This ensures consistency across the platform."
+    - id: doc2
+      date: "2023-11-01"
+      content: "Microservices Best Practices: Choose the right database for each service. Consider PostgreSQL for complex queries, MongoDB for document storage, Redis for caching."
+    - id: doc3
+      date: "2022-06-15"
+      content: "Migration Notice: We are moving away from MySQL to PostgreSQL as our standard relational database. New services should use PostgreSQL 14+."
+  evaluation:
+    temporal_reasoning: true
+    identifies_evolution: true
+    correct_recommendation: "PostgreSQL 14+ (based on latest guidance)"
+
+# Additional base tasks (9 more for total 12)
+- id: rag_monitoring_alerts_007
+  category: rag_qa
+  difficulty: base
+  prompt: "What metrics should trigger critical alerts in production?"
+  documents:
+    - id: doc1
+      content: "Monitoring Standards: Critical alerts for: CPU >90% for 5 min, Memory >85%, Disk >90%, Error rate >1%, Response time >2s (p95)."
+    - id: doc2
+      content: "SLA Requirements: 99.9% uptime = 43 minutes downtime/month. Page on-call for any SLA-impacting issues."
+
+- id: rag_code_review_008
+  category: rag_qa
+  difficulty: base
+  prompt: "What are the code review requirements for database migrations?"
+  documents:
+    - id: doc1
+      content: "Database Change Process: All migrations require: review by DBA, testing on replica, rollback script, performance impact analysis."
+    - id: doc2
+      content: "Code Review Checklist: Check for indexes, foreign keys, data types, backwards compatibility, migration duration estimate."
+
+- id: rag_incident_response_009
+  category: rag_qa
+  difficulty: base
+  prompt: "Describe the incident response process for production outages."
+  documents:
+    - id: doc1
+      content: "Incident Response: 1) Alert triggers, 2) On-call acknowledges within 5 min, 3) Create incident channel, 4) Assess severity (S1-S4), 5) Implement fix or rollback, 6) Post-mortem within 48h."
+    - id: doc2
+      content: "Severity Levels: S1=complete outage, S2=major feature down, S3=degraded performance, S4=minor issue."
+
+- id: rag_api_versioning_010
+  category: rag_qa
+  difficulty: base
+  prompt: "How should we handle API versioning and deprecation?"
+  documents:
+    - id: doc1
+      content: "API Versioning: Use URL versioning (/v1, /v2). Maintain backwards compatibility for 6 months minimum. Announce deprecation 3 months in advance."
+    - id: doc2
+      content: "Breaking Changes: Document all breaking changes. Provide migration guide. Support both versions during transition period."
+
+- id: rag_testing_requirements_011
+  category: rag_qa
+  difficulty: base
+  prompt: "What are the testing requirements for new features?"
+  documents:
+    - id: doc1
+      content: "Testing Standards: Minimum 80% code coverage. Unit tests required. Integration tests for APIs. E2E tests for critical user flows."
+    - id: doc2
+      content: "Test Pyramid: 70% unit tests, 20% integration tests, 10% E2E tests. All tests must pass in CI before merge."
+
+- id: rag_security_headers_012
+  category: rag_qa
+  difficulty: base
+  prompt: "Which security headers must be implemented for web applications?"
+  documents:
+    - id: doc1
+      content: "Security Headers: Required: Content-Security-Policy, X-Frame-Options: DENY, X-Content-Type-Options: nosniff, Strict-Transport-Security."
+    - id: doc2
+      content: "Additional Headers: Recommended: Referrer-Policy: strict-origin, Permissions-Policy, X-XSS-Protection (legacy browsers)."
+
+# Additional adversarial tasks (5 more for total 8)
+- id: rag_contradictory_perf_013
+  category: rag_qa
+  difficulty: adversarial
+  prompt: "What's the recommended connection pool size for our services?"
+  documents:
+    - id: doc1
+      content: "Database Tuning: Set connection pool to 100 connections per service for optimal throughput."
+    - id: doc2
+      content: "Resource Limits: Maximum 20 database connections per service to prevent connection exhaustion."
+    - id: doc3
+      content: "Performance Tests: Testing shows 50 connections provides best balance of performance and resource usage."
+
+- id: rag_missing_context_014
+  category: rag_qa
+  difficulty: adversarial
+  prompt: "How do we handle CORS for the new Payment API?"
+  documents:
+    - id: doc1
+      content: "API Security: All APIs must validate origin headers and implement proper CORS policies."
+    - id: doc2
+      content: "Frontend Integration: The Payment API will be called from multiple domains including partners."
+    - id: doc3
+      content: "General CORS Setup: Configure allowed origins, methods, and headers based on security requirements."
+
+- id: rag_ambiguous_refs_015
+  category: rag_qa
+  difficulty: adversarial
+  prompt: "What retry strategy should we use for external API calls?"
+  documents:
+    - id: doc1
+      content: "Resilience Patterns: Implement exponential backoff with jitter. Start with 1s, max 30s, 3 retries."
+    - id: doc2
+      content: "Third-party APIs: Payment provider recommends linear backoff, 5s intervals, up to 5 retries."
+    - id: doc3
+      content: "Circuit Breaker: After 5 consecutive failures, open circuit for 60s before retry."
+
+- id: rag_partial_truth_016
+  category: rag_qa
+  difficulty: adversarial
+  prompt: "What data should we log for debugging production issues?"
+  documents:
+    - id: doc1
+      content: "Logging Standards: Log all errors with stack traces, request IDs, user IDs (hashed), timestamps."
+    - id: doc2
+      content: "Privacy Policy: Never log passwords, credit cards, SSNs, or other PII. Hash or mask sensitive data."
+    - id: doc3
+      content: "Debug Mode: In production, avoid verbose logging. Use sampling for high-volume endpoints."
+
+- id: rag_evolving_standards_017
+  category: rag_qa
+  difficulty: adversarial
+  prompt: "Which authentication method should mobile apps use?"
+  documents:
+    - id: doc1
+      date: "2020-01-01"
+      content: "Mobile Auth: Use long-lived JWT tokens (30 days) with refresh tokens for better UX."
+    - id: doc2
+      date: "2023-01-01"
+      content: "Security Update: Mobile apps must use OAuth2 with PKCE flow. Short-lived access tokens (1 hour)."
+    - id: doc3
+      date: "2021-06-01"
+      content: "Biometric Support: Implement fingerprint/FaceID as optional second factor for sensitive operations."
+
+# Summary counts
+# Base: 12 tasks
+# Adversarial: 8 tasks
+# Total: 20 tasks

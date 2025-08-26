@@ -1,0 +1,37 @@
+evaluation:
+  max_tokens: 2000
+  runs_per_task: 1
+  temperature: 0.1
+  timeout: 60
+models:
+- cost_per_1k: 0.0
+  id: mistralai/mistral-7b-instruct:free
+  name: Mistral-7B-Free
+  type: small
+- cost_per_1k: 0.0
+  id: google/gemma-7b-it:free
+  name: Gemma-7B-Free
+  type: small
+reporting:
+  formats:
+  - markdown
+  - json
+  highlight_free_models: true
+  include_cost_analysis: true
+sgr_modes:
+- description: No structured guidance
+  name: 'off'
+- description: Minimal structure
+  name: lite
+  schema_fields:
+  - task_understanding
+  - solution
+test_categories:
+  code_generation:
+    count: 1
+    tasks:
+    - code_simple_001
+  rag_qa:
+    count: 1
+    tasks:
+    - rag_simple_001

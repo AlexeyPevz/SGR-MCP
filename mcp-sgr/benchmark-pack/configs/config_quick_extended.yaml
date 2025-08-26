@@ -1,0 +1,84 @@
+# Quick extended test - test new models with fewer tasks
+
+models:
+  # Free models to test
+  - id: "mistralai/mistral-7b-instruct:free"
+    name: "Mistral-7B-Free"
+    type: "small"
+    cost_per_1k: 0.0
+    
+  - id: "google/gemini-2.0-flash-thinking-exp-1219:free"
+    name: "Gemini-2.0-Flash-Free"
+    type: "medium"
+    cost_per_1k: 0.0
+    
+  - id: "liquid/lfm-40b:free"
+    name: "Liquid-LFM-40B-Free"
+    type: "large"
+    cost_per_1k: 0.0
+    
+  # Ultra budget models
+  - id: "mistralai/ministral-3b"
+    name: "Ministral-3B"
+    type: "tiny"
+    cost_per_1k: 0.00002
+    
+  - id: "mistralai/ministral-8b"
+    name: "Ministral-8B"
+    type: "small"
+    cost_per_1k: 0.00002
+    
+  - id: "deepseek/deepseek-coder"
+    name: "DeepSeek-Coder"
+    type: "large"
+    cost_per_1k: 0.00014
+    
+  - id: "qwen/qwen-2.5-72b-instruct"
+    name: "Qwen-2.5-72B"
+    type: "large"
+    cost_per_1k: 0.00018
+    
+  - id: "anthropic/claude-3-haiku"
+    name: "Claude-3-Haiku"
+    type: "small"
+    cost_per_1k: 0.00025
+
+sgr_modes:
+  - name: "off"
+    description: "No structured guidance"
+    
+  - name: "lite"
+    description: "Minimal structure"
+    schema_fields: ["task_understanding", "solution"]
+    
+  - name: "full"
+    description: "Full structured reasoning"
+    schema_fields: ["requirements_analysis", "approach", "implementation", "validation"]
+
+# Quick test with 2 tasks per category
+test_categories:
+  code_generation:
+    count: 2
+    tasks: ["code_simple_001", "code_api_002"]
+    
+  rag_qa:
+    count: 2
+    tasks: ["rag_simple_001", "rag_conflict_003"]
+    
+  summarization:
+    count: 1
+    tasks: ["sum_report_001"]
+
+# Total: 5 tasks × 8 models × 3 modes = 120 API calls
+# Estimated cost: < $0.05
+
+evaluation:
+  runs_per_task: 1
+  temperature: 0.1
+  max_tokens: 2000
+  timeout: 60
+
+reporting:
+  formats: ["markdown", "json"]
+  include_cost_analysis: true
+  highlight_free_models: true

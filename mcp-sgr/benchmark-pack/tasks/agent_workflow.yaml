@@ -1,0 +1,243 @@
+# Agent Workflow Tasks
+
+# Code Chain Tasks (6)
+- id: agent_code_001
+  category: agent_workflow
+  difficulty: code_chain
+  prompt: >
+    Multi-step debugging workflow:
+    1. Analyze this error: "TypeError: Cannot read property 'map' of undefined at UserList.render()"
+    2. Identify the root cause in the codebase
+    3. Implement a fix with proper null checking
+    4. Add unit tests to prevent regression
+    5. Update documentation if API changed
+  context:
+    error_trace: |
+      TypeError: Cannot read property 'map' of undefined
+        at UserList.render (components/UserList.js:45:23)
+        at processComponent (react-dom.js:4521:15)
+    code_snippet: |
+      render() {
+        return (
+          <ul>
+            {this.props.users.map(user => (
+              <li key={user.id}>{user.name}</li>
+            ))}
+          </ul>
+        );
+      }
+  evaluation:
+    steps_completed: ["error_analysis", "root_cause", "fix_implemented", "tests_added", "docs_updated"]
+    fix_correctness: true
+    test_coverage: true
+    handles_edge_cases: true
+
+- id: agent_code_002
+  category: agent_workflow
+  difficulty: code_chain
+  prompt: >
+    Feature implementation workflow:
+    1. Parse requirements: "Add export to CSV functionality for user data table"
+    2. Design the implementation approach
+    3. Implement backend endpoint
+    4. Add frontend UI component
+    5. Create integration tests
+    6. Document the new feature
+  requirements:
+    - "Support filtering before export"
+    - "Include column selection"
+    - "Handle large datasets (>100k rows)"
+    - "Progress indication for long exports"
+  evaluation:
+    requirements_met: true
+    design_sound: true
+    implementation_complete: true
+    tests_comprehensive: true
+    documentation_clear: true
+
+- id: agent_code_003
+  category: agent_workflow
+  difficulty: code_chain
+  prompt: >
+    Performance optimization workflow:
+    1. Profile this slow query: "SELECT * FROM orders JOIN customers ON ... (taking 30s)"
+    2. Identify bottlenecks
+    3. Propose optimization strategies
+    4. Implement the most effective solution
+    5. Verify performance improvement
+    6. Create monitoring alerts
+  context:
+    table_sizes: {orders: "10M rows", customers: "1M rows"}
+    current_indexes: ["orders.customer_id", "customers.id"]
+    query_plan: "Full table scan on orders"
+  evaluation:
+    bottleneck_identified: true
+    optimization_effective: true
+    performance_improved: true
+    monitoring_setup: true
+    no_functionality_broken: true
+
+- id: agent_code_004
+  category: agent_workflow
+  difficulty: code_chain
+  prompt: >
+    Security patch workflow:
+    1. Analyze security report: "SQL injection vulnerability in search endpoint"
+    2. Reproduce the vulnerability
+    3. Implement secure fix
+    4. Add security tests
+    5. Review all similar endpoints
+    6. Create security advisory
+  vulnerability_details:
+    endpoint: "/api/search?q="
+    issue: "Unsanitized user input in SQL query"
+    severity: "Critical"
+  evaluation:
+    vulnerability_understood: true
+    fix_secure: true
+    tests_prevent_regression: true
+    comprehensive_review: true
+    advisory_complete: true
+
+- id: agent_code_005
+  category: agent_workflow
+  difficulty: code_chain
+  prompt: >
+    API migration workflow:
+    1. Analyze v1 API usage patterns
+    2. Design v2 API with improvements
+    3. Implement v2 with backwards compatibility
+    4. Create migration guide
+    5. Add deprecation warnings to v1
+    6. Set up monitoring for both versions
+  v1_issues:
+    - "Inconsistent naming conventions"
+    - "No pagination on large responses"
+    - "Weak error messages"
+    - "No rate limiting"
+  evaluation:
+    design_improvements: true
+    backwards_compatible: true
+    migration_guide_helpful: true
+    deprecation_handled: true
+    monitoring_comprehensive: true
+
+- id: agent_code_006
+  category: agent_workflow
+  difficulty: code_chain
+  prompt: >
+    Bug investigation workflow:
+    1. Reproduce reported bug: "Data disappears after refresh"
+    2. Trace through application flow
+    3. Identify state management issue
+    4. Fix the root cause
+    5. Add e2e test for the scenario
+    6. Deploy fix with verification
+  bug_report:
+    steps_to_reproduce: ["Login", "Add item to cart", "Refresh page", "Cart is empty"]
+    expected: "Cart persists after refresh"
+    environment: "Production, Chrome 120"
+  evaluation:
+    bug_reproduced: true
+    root_cause_found: true
+    fix_addresses_cause: true
+    test_prevents_regression: true
+    deployment_verified: true
+
+# RAG Agent Tasks (4)
+- id: agent_rag_007
+  category: agent_workflow
+  difficulty: rag_agent
+  prompt: >
+    Documentation synthesis workflow:
+    1. Query: "How to implement SSO with our platform?"
+    2. Search across documentation, API refs, and examples
+    3. Identify gaps in current docs
+    4. Synthesize comprehensive guide
+    5. Validate with working example
+    6. Update docs with new guide
+  doc_sources:
+    - "API Reference: /auth endpoints"
+    - "Integration Guide: OAuth2 setup"
+    - "Example Apps: Node.js SSO demo"
+    - "Support Tickets: Common SSO issues"
+  evaluation:
+    relevant_docs_found: true
+    gaps_identified: true
+    guide_comprehensive: true
+    example_works: true
+    docs_updated: true
+
+- id: agent_rag_008
+  category: agent_workflow
+  difficulty: rag_agent
+  prompt: >
+    Incident correlation workflow:
+    1. Alert: "API response time degraded 3x"
+    2. Search logs for correlated events
+    3. Query metrics for resource usage
+    4. Check recent deployments
+    5. Synthesize root cause hypothesis
+    6. Recommend mitigation steps
+  available_data:
+    logs: ["Application logs", "Infrastructure logs", "CDN logs"]
+    metrics: ["CPU", "Memory", "Network", "Database connections"]
+    changes: ["Deployment history", "Config changes", "Feature flags"]
+  evaluation:
+    correlation_found: true
+    hypothesis_plausible: true
+    data_synthesis_complete: true
+    recommendations_actionable: true
+    evidence_based: true
+
+- id: agent_rag_009
+  category: agent_workflow
+  difficulty: rag_agent
+  prompt: >
+    Compliance audit workflow:
+    1. Requirement: "Verify GDPR compliance for user data handling"
+    2. Search codebase for data processing
+    3. Check against compliance checklist
+    4. Identify gaps and risks
+    5. Generate compliance report
+    6. Propose remediation plan
+  compliance_areas:
+    - "Data collection and consent"
+    - "Right to deletion"
+    - "Data portability"
+    - "Security measures"
+    - "Third-party processors"
+  evaluation:
+    comprehensive_search: true
+    gaps_accurate: true
+    report_detailed: true
+    remediation_practical: true
+    priorities_correct: true
+
+- id: agent_rag_010
+  category: agent_workflow
+  difficulty: rag_agent
+  prompt: >
+    Knowledge base Q&A workflow:
+    1. Customer question: "Why is my integration failing with error code 4xx?"
+    2. Search error code database
+    3. Find similar support tickets
+    4. Check recent system changes
+    5. Synthesize troubleshooting guide
+    6. If unresolved, escalate with context
+  knowledge_sources:
+    - error_codes: "Internal error reference"
+    - tickets: "Support ticket history"
+    - changes: "System changelog"
+    - docs: "Integration guides"
+  evaluation:
+    relevant_info_gathered: true
+    similar_cases_found: true
+    guide_helpful: true
+    escalation_appropriate: true
+    context_complete: true
+
+# Summary counts
+# Code Chain: 6 tasks
+# RAG Agent: 4 tasks
+# Total: 10 tasks

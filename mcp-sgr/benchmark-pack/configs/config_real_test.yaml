@@ -1,0 +1,117 @@
+# Real comprehensive test - diverse tasks and models
+
+models:
+  # Free model (winner from previous tests)
+  - id: "mistralai/mistral-7b-instruct:free"
+    name: "Mistral-7B-Free"
+    type: "small"
+    cost_per_1k: 0.0
+    
+  # Ultra cheap but capable
+  - id: "mistralai/ministral-8b"
+    name: "Ministral-8B"
+    type: "small"
+    cost_per_1k: 0.00002
+    
+  # Best budget model
+  - id: "deepseek/deepseek-chat"
+    name: "DeepSeek-Chat"
+    type: "large"
+    cost_per_1k: 0.00014
+    
+  # Different sizes of Qwen
+  - id: "qwen/qwen-2.5-7b-instruct"
+    name: "Qwen-2.5-7B"
+    type: "small"
+    cost_per_1k: 0.00018
+    
+  - id: "qwen/qwen-2.5-72b-instruct"
+    name: "Qwen-2.5-72B"
+    type: "large"
+    cost_per_1k: 0.00018
+    
+  # Popular choices
+  - id: "openai/gpt-3.5-turbo"
+    name: "GPT-3.5-Turbo"
+    type: "medium"
+    cost_per_1k: 0.0005
+    
+  - id: "anthropic/claude-3-haiku"
+    name: "Claude-3-Haiku"
+    type: "small"
+    cost_per_1k: 0.00025
+
+sgr_modes:
+  - name: "off"
+    description: "No structured guidance"
+    
+  - name: "lite"
+    description: "Minimal structure"
+    schema_fields: ["task_understanding", "solution"]
+    
+  - name: "full"
+    description: "Full structured reasoning"
+    schema_fields: ["requirements_analysis", "approach", "implementation", "validation"]
+
+# Diverse task selection
+test_categories:
+  code_generation:
+    tasks: [
+      "code_csv_json_001",      # Easy: CSV to JSON converter
+      "code_fastapi_jwt_003",   # Medium: REST API with auth
+      "code_bfs_maze_004",      # Medium: Algorithm implementation
+      "code_swe_bugfix_006"     # Hard: Real bug fix
+    ]
+    
+  rag_qa:
+    tasks: [
+      "rag_simple_001",         # Basic Q&A
+      "rag_citation_002",       # With citations
+      "rag_conflict_003",       # Conflicting sources
+      "rag_technical_004"       # Technical documentation
+    ]
+    
+  summarization:
+    tasks: [
+      "sum_report_001",         # Financial report
+      "sum_technical_002",      # Technical incident
+      "sum_compare_007"         # Comparative summary
+    ]
+    
+  planning_decision:
+    tasks: [
+      "plan_arch_001",          # PWA architecture
+      "plan_arch_003",          # IoT data architecture
+      "plan_product_008"        # Pricing strategy
+    ]
+    
+  data_etl:
+    tasks: [
+      "data_clean_001",         # Email/phone validation
+      "data_clean_004",         # Fuzzy deduplication
+      "data_transform_007"      # CSV to hierarchical JSON
+    ]
+    
+  agent_workflow:
+    tasks: [
+      "agent_code_001",         # Debug workflow
+      "agent_code_003",         # Performance optimization
+      "agent_rag_007"          # Documentation synthesis
+    ]
+
+# Total: 20 tasks × 7 models × 3 modes = 420 API calls
+# Estimated cost: ~$0.15
+
+evaluation:
+  runs_per_task: 1
+  temperature: 0.1
+  max_tokens: 2000
+  timeout: 60
+
+reporting:
+  formats: ["markdown", "json"]
+  include_cost_analysis: true
+  highlight_free_models: true
+  track_latency_percentiles: true
+  generate_category_analysis: true
+  show_task_difficulty_analysis: true

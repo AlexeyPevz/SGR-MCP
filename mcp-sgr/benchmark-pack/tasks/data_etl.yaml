@@ -1,0 +1,212 @@
+# Data ETL Tasks
+
+# Data Cleaning Tasks (6)
+- id: data_clean_001
+  category: data_etl
+  difficulty: cleaning
+  prompt: >
+    Clean and validate this customer data CSV:
+    - Validate email addresses (RFC 5322 compliant)
+    - Standardize phone numbers to E.164 format
+    - Validate dates (handle multiple formats)
+    - Report invalid entries with reasons
+    - Output clean data and error report
+  sample_data: |
+    name,email,phone,signup_date
+    John Doe,john@example.com,+1-555-123-4567,2024-01-15
+    Jane Smith,jane.smith@,555.987.6543,15/01/2024
+    Bob Wilson,bob@test,+44 20 7123 4567,Jan 15, 2024
+    Alice Brown,alice@company.co.uk,(555) 321-9876,2024/13/45
+  evaluation:
+    validation_accuracy: true
+    error_reporting_quality: true
+    handles_formats: ["US phones", "UK phones", "ISO dates", "US dates", "UK dates"]
+    preserves_valid_data: true
+    output_format_correct: true
+
+- id: data_clean_002
+  category: data_etl
+  difficulty: cleaning
+  prompt: >
+    Normalize address data for geocoding:
+    - Standardize abbreviations (St. → Street, Apt → Apartment)
+    - Handle international formats
+    - Extract components (street, city, state, postal code, country)
+    - Flag potentially invalid addresses
+  sample_addresses:
+    - "123 Main St., Apt 4B, New York, NY 10001"
+    - "10 Downing Street, London SW1A 2AA, UK"
+    - "123 Main Street Suite 100 Seattle WA"
+    - "Champ de Mars, 5 Av. Anatole France, 75007 Paris, France"
+  evaluation:
+    standardization_consistent: true
+    components_extracted: true
+    international_handled: true
+    validation_flags: true
+
+- id: data_clean_003
+  category: data_etl
+  difficulty: cleaning
+  prompt: >
+    Clean financial transaction data:
+    - Validate IBAN/routing numbers
+    - Standardize currency formats
+    - Detect duplicate transactions
+    - Flag suspicious patterns (e.g., round amounts, rapid sequences)
+  validation_rules:
+    - "IBAN checksum validation"
+    - "Currency code ISO 4217"
+    - "Amount precision rules"
+    - "Timestamp sequence validation"
+  evaluation:
+    validation_accuracy: true
+    duplicate_detection: true
+    suspicious_pattern_detection: true
+    data_integrity_maintained: true
+
+- id: data_clean_004
+  category: data_etl
+  difficulty: cleaning
+  prompt: >
+    Deduplicate customer records using fuzzy matching:
+    - Match on name similarity (handle typos, abbreviations)
+    - Consider email, phone, address proximity
+    - Generate confidence scores
+    - Provide merge recommendations
+  sample_records:
+    - {name: "John Smith", email: "jsmith@email.com", phone: "555-1234"}
+    - {name: "J. Smith", email: "jsmith@email.com", phone: "555-1234"}
+    - {name: "John Smyth", email: "john.s@email.com", phone: "555-1234"}
+  evaluation:
+    matching_accuracy: true
+    confidence_scoring: true
+    merge_strategy_sound: true
+    preserves_unique_records: true
+
+- id: data_clean_005
+  category: data_etl
+  difficulty: cleaning
+  prompt: >
+    Validate and clean healthcare data for HIPAA compliance:
+    - Detect and mask PII (SSN, names in free text)
+    - Validate medical record numbers
+    - Standardize date formats
+    - Ensure required fields are present
+  compliance_requirements:
+    - "18 HIPAA identifiers"
+    - "Safe harbor de-identification"
+    - "Audit trail for changes"
+  evaluation:
+    pii_detection_accuracy: true
+    compliance_met: true
+    data_utility_preserved: true
+    audit_trail_complete: true
+
+- id: data_clean_006
+  category: data_etl
+  difficulty: cleaning
+  prompt: >
+    Clean and validate product catalog data:
+    - Standardize units (inches/cm, lbs/kg)
+    - Validate SKUs format
+    - Check price consistency
+    - Normalize category hierarchies
+  validation_rules:
+    - "SKU format: XXX-YYYY-ZZ"
+    - "Price > cost"
+    - "Weight/dimensions realistic"
+    - "Category path valid"
+  evaluation:
+    unit_conversion_accurate: true
+    validation_comprehensive: true
+    hierarchy_normalized: true
+    data_consistency: true
+
+# Data Transformation Tasks (4)
+- id: data_transform_007
+  category: data_etl
+  difficulty: transformation
+  prompt: >
+    Transform flat CSV to hierarchical JSON for NoSQL migration:
+    - Group orders by customer
+    - Nest order items within orders
+    - Calculate aggregates (total spent, order count)
+    - Maintain referential integrity
+  input_schema:
+    customers: ["id", "name", "email"]
+    orders: ["id", "customer_id", "date", "total"]
+    items: ["order_id", "product", "quantity", "price"]
+  output_structure:
+    customer:
+      orders:
+        - items: []
+  evaluation:
+    structure_correct: true
+    aggregates_accurate: true
+    no_data_loss: true
+    relationships_preserved: true
+
+- id: data_transform_008
+  category: data_etl
+  difficulty: transformation
+  prompt: >
+    Implement fuzzy matching for supplier catalog reconciliation:
+    - Match product names across catalogs (80%+ similarity)
+    - Handle unit differences
+    - Identify price discrepancies >10%
+    - Generate mapping confidence scores
+  catalog_a:
+    - {name: "USB-C Cable 6ft", price: 9.99, unit: "each"}
+    - {name: "Wireless Mouse - Black", price: 24.99, unit: "ea"}
+  catalog_b:
+    - {name: "USB Type-C Cable 2m", price: 10.99, unit: "piece"}
+    - {name: "Black Wireless Mouse", price: 22.50, unit: "unit"}
+  evaluation:
+    matching_accuracy: true
+    unit_reconciliation: true
+    price_comparison_correct: true
+    confidence_scoring_sensible: true
+
+- id: data_transform_009
+  category: data_etl
+  difficulty: transformation
+  prompt: >
+    Build data pipeline for real-time analytics:
+    - Stream processing for clickstream data
+    - Sessionization (30-minute timeout)
+    - Calculate metrics (page views, bounce rate, duration)
+    - Output to both data warehouse and real-time dashboard
+  requirements:
+    - "Handle out-of-order events"
+    - "Exactly-once processing"
+    - "Late data handling"
+    - "Schema evolution support"
+  evaluation:
+    sessionization_correct: true
+    metrics_accurate: true
+    handles_edge_cases: true
+    scalability_considered: true
+
+- id: data_transform_010
+  category: data_etl
+  difficulty: transformation
+  prompt: >
+    Create CDC (Change Data Capture) pipeline:
+    - Track changes in source database
+    - Transform to event stream
+    - Handle schema changes gracefully
+    - Ensure no data loss during transformation
+  source_events:
+    - {type: "INSERT", table: "users", data: {id: 1, name: "John"}}
+    - {type: "UPDATE", table: "users", before: {id: 1, name: "John"}, after: {id: 1, name: "John Doe"}}
+    - {type: "DELETE", table: "users", data: {id: 1}}
+  evaluation:
+    event_transformation_correct: true
+    schema_evolution_handled: true
+    exactly_once_guarantee: true
+    performance_considerations: true
+
+# Summary counts
+# Cleaning: 6 tasks
+# Transformation: 4 tasks
+# Total: 10 tasks

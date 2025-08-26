@@ -1,0 +1,135 @@
+# SGR Benchmark Configuration - EXTENDED VERSION
+# More models, more comprehensive testing
+
+models:
+  # Free models
+  - id: "mistralai/mistral-7b-instruct:free"
+    name: "Mistral-7B-Free"
+    type: "small"
+    cost_per_1k: 0.0
+    
+  # Budget models
+  - id: "deepseek/deepseek-chat"
+    name: "DeepSeek-Chat"
+    type: "large"
+    cost_per_1k: 0.00014
+    
+  - id: "deepseek/deepseek-coder"
+    name: "DeepSeek-Coder"
+    type: "large"
+    cost_per_1k: 0.00014
+    
+  - id: "qwen/qwen-2.5-7b-instruct"
+    name: "Qwen-2.5-7B"
+    type: "small"
+    cost_per_1k: 0.00018
+    
+  - id: "qwen/qwen-2.5-32b-instruct"
+    name: "Qwen-2.5-32B"
+    type: "medium"
+    cost_per_1k: 0.00018
+    
+  - id: "qwen/qwen-2.5-72b-instruct"
+    name: "Qwen-2.5-72B"
+    type: "large"
+    cost_per_1k: 0.00018
+    
+  # Medium cost models
+  - id: "openai/gpt-3.5-turbo"
+    name: "GPT-3.5-Turbo"
+    type: "medium"
+    cost_per_1k: 0.0005
+    
+  - id: "openai/gpt-3.5-turbo-1106"
+    name: "GPT-3.5-Turbo-1106"
+    type: "medium"
+    cost_per_1k: 0.0005
+    
+  - id: "anthropic/claude-3-haiku"
+    name: "Claude-3-Haiku"
+    type: "small"
+    cost_per_1k: 0.00025
+    
+  - id: "anthropic/claude-3-haiku:beta"
+    name: "Claude-3-Haiku-Beta"
+    type: "small"
+    cost_per_1k: 0.00025
+    
+  # Additional budget models
+  - id: "mistralai/ministral-3b"
+    name: "Ministral-3B"
+    type: "tiny"
+    cost_per_1k: 0.00002
+    
+  - id: "mistralai/ministral-8b"
+    name: "Ministral-8B"
+    type: "small"
+    cost_per_1k: 0.00002
+    
+  - id: "google/gemini-2.0-flash-thinking-exp-1219:free"
+    name: "Gemini-2.0-Flash-Free"
+    type: "medium"
+    cost_per_1k: 0.0
+    
+  - id: "liquid/lfm-40b:free"
+    name: "Liquid-LFM-40B-Free"
+    type: "large"
+    cost_per_1k: 0.0
+
+sgr_modes:
+  - name: "off"
+    description: "No structured guidance"
+    
+  - name: "lite"
+    description: "Minimal structure"
+    schema_fields: ["task_understanding", "solution"]
+    
+  - name: "full"
+    description: "Full structured reasoning"
+    schema_fields: ["requirements_analysis", "approach", "implementation", "validation"]
+
+# Test all task categories
+test_categories:
+  code_generation:
+    count: 5
+    tasks: ["code_simple_001", "code_api_002", "code_test_003", "code_refactor_004", "code_debug_005"]
+    
+  rag_qa:
+    count: 5
+    tasks: ["rag_simple_001", "rag_citation_002", "rag_conflict_003", "rag_technical_004", "rag_multi_005"]
+    
+  summarization:
+    count: 4
+    tasks: ["sum_report_001", "sum_technical_002", "sum_policy_003", "sum_compare_007"]
+    
+  planning_decision:
+    count: 4
+    tasks: ["plan_arch_001", "plan_arch_002", "plan_product_007", "plan_product_008"]
+    
+  data_etl:
+    count: 4
+    tasks: ["data_clean_001", "data_clean_002", "data_transform_007", "data_transform_008"]
+    
+  agent_workflow:
+    count: 3
+    tasks: ["agent_code_001", "agent_code_002", "agent_rag_007"]
+
+# Total: 25 tasks × 14 models × 3 modes = 1,050 API calls
+
+evaluation:
+  runs_per_task: 1
+  temperature: 0.1
+  max_tokens: 2000
+  timeout: 60
+  
+# Estimated costs:
+# Free models: $0.00
+# Budget models (DeepSeek, Qwen, Ministral): ~$0.15
+# Medium models (GPT-3.5, Claude Haiku): ~$0.20
+# Total: ~$0.35 for full run
+
+reporting:
+  formats: ["markdown", "json", "csv"]
+  include_cost_analysis: true
+  highlight_free_models: true
+  track_latency_percentiles: true

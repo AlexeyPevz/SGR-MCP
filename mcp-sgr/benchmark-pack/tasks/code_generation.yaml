@@ -1,0 +1,190 @@
+# Code Generation Tasks
+
+# Easy Tasks (12)
+- id: code_csv_json_001
+  category: codegen
+  difficulty: easy
+  prompt: >
+    Create a CLI converter from CSV to JSON with date and email validation.
+    Requirements:
+    - Read CSV from stdin or file
+    - Validate email format (simple regex)
+    - Validate dates (ISO format)
+    - Output valid JSON
+    - Include 5-10 unit tests
+  constraints:
+    - "Handle missing values"
+    - "Report validation errors"
+    - "Python or Node.js"
+  ground_truth:
+    tests: tests/code_csv_json_001/
+  evaluation:
+    metrics: ["pass_rate", "validation_accuracy", "error_handling"]
+
+- id: code_string_utils_002
+  category: codegen
+  difficulty: easy
+  prompt: >
+    Implement string utility functions:
+    1. Reverse words in a sentence
+    2. Count n-grams (configurable n)
+    3. Remove duplicate words preserving order
+    Include edge case tests.
+  constraints:
+    - "Handle Unicode properly"
+    - "Efficient for large strings"
+    - "Type hints/JSDoc"
+  ground_truth:
+    tests: tests/code_string_utils_002/
+  evaluation:
+    metrics: ["pass_rate", "edge_case_coverage"]
+
+# Medium Tasks (6)
+- id: code_fastapi_jwt_003
+  category: codegen
+  difficulty: medium
+  prompt: >
+    Create a FastAPI REST API with JWT authentication:
+    - POST /login (username/password → JWT token)
+    - GET /protected (requires valid JWT)
+    - Proper error handling (401/403/422)
+    - Security best practices
+    - Basic integration tests
+  constraints:
+    - "JWT secret from environment"
+    - "Token expiration"
+    - "Password hashing with bcrypt"
+    - "Rate limiting on login"
+  ground_truth:
+    tests: tests/code_fastapi_jwt_003/
+    security_checklist: ["password_hashing", "token_expiration", "secure_secret", "rate_limiting"]
+  evaluation:
+    metrics: ["pass_rate", "security_score", "api_completeness"]
+
+- id: code_bfs_maze_004
+  category: codegen
+  difficulty: medium
+  prompt: >
+    Implement BFS to find shortest path in a maze:
+    - 2D grid (0=path, 1=wall)
+    - Start at top-left, end at bottom-right
+    - Return path as list of coordinates
+    - Handle no-path case
+    - Test with various maze sizes
+  constraints:
+    - "O(mn) time complexity"
+    - "Validate input"
+    - "Visualize path (optional)"
+  ground_truth:
+    tests: tests/code_bfs_maze_004/
+    test_cases:
+      - small_maze: "5x5 with solution"
+      - large_maze: "50x50 performance test"
+      - no_path: "Blocked maze"
+  evaluation:
+    metrics: ["correctness", "performance", "edge_cases"]
+
+# Hard Tasks (2)
+- id: code_rbac_api_005
+  category: codegen
+  difficulty: hard
+  prompt: >
+    Build a role-based access control API:
+    - User roles: admin, editor, viewer
+    - Resource permissions matrix
+    - JWT with role claims
+    - Middleware for permission checks
+    - Audit logging
+    - E2E tests for all scenarios
+  constraints:
+    - "Secure by default"
+    - "Performance: <50ms auth check"
+    - "Extensible permission system"
+  ground_truth:
+    tests: tests/code_rbac_api_005/
+    security_requirements:
+      - "Principle of least privilege"
+      - "Audit trail"
+      - "Token refresh mechanism"
+  evaluation:
+    metrics: ["security_score", "test_coverage", "performance"]
+
+- id: code_swe_bugfix_006
+  category: codegen
+  difficulty: hard
+  prompt: >
+    Fix a bug in the provided codebase:
+    - Issue: Date parser fails on timezone abbreviations
+    - Constraints: Minimal patch (<50 lines)
+    - Must pass all existing tests
+    - Add regression test
+  context:
+    repo_url: "samples/date-parser/"
+    issue_description: "Parser throws on 'EST', 'PST' timezone formats"
+  constraints:
+    - "Don't break existing functionality"
+    - "Follow project style guide"
+    - "Update documentation"
+  ground_truth:
+    patch_file: patches/code_swe_bugfix_006.patch
+    new_tests: tests/code_swe_bugfix_006/
+  evaluation:
+    metrics: ["patch_correctness", "test_pass_rate", "minimal_change"]
+
+# Additional easy tasks (7 more for total 12)
+- id: code_fibonacci_007
+  category: codegen
+  difficulty: easy
+  prompt: "Implement iterative and recursive Fibonacci with memoization. Include performance tests."
+
+- id: code_url_parser_008
+  category: codegen
+  difficulty: easy
+  prompt: "Parse URLs and extract components (protocol, host, path, query params). Handle edge cases."
+
+- id: code_password_validator_009
+  category: codegen
+  difficulty: easy
+  prompt: "Password strength validator with configurable rules. Return detailed feedback."
+
+- id: code_todo_cli_010
+  category: codegen
+  difficulty: easy
+  prompt: "Simple TODO CLI app: add, list, complete, delete tasks. Persist to JSON file."
+
+- id: code_roman_numerals_011
+  category: codegen
+  difficulty: easy
+  prompt: "Convert between integers and Roman numerals (1-3999). Handle invalid input."
+
+- id: code_markdown_parser_012
+  category: codegen
+  difficulty: easy
+  prompt: "Parse basic Markdown to HTML: headers, bold, italic, links. Include tests."
+
+- id: code_calculator_013
+  category: codegen
+  difficulty: easy
+  prompt: "Expression calculator supporting +,-,*,/,parentheses. Handle division by zero."
+
+# Additional medium tasks (3 more for total 6)
+- id: code_rate_limiter_014
+  category: codegen
+  difficulty: medium
+  prompt: "Implement token bucket rate limiter with Redis backend. Include stress tests."
+
+- id: code_websocket_chat_015
+  category: codegen
+  difficulty: medium
+  prompt: "Real-time chat server with WebSocket: rooms, typing indicators, message history."
+
+- id: code_image_processor_016
+  category: codegen
+  difficulty: medium
+  prompt: "Image processing API: resize, rotate, filters. Handle various formats safely."
+
+# Summary counts
+# Easy: 12 tasks
+# Medium: 6 tasks  
+# Hard: 2 tasks
+# Total: 20 tasks
