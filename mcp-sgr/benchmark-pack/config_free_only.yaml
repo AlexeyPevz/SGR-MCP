@@ -1,0 +1,86 @@
+cost_estimates:
+  cheap_models_cost: $0.17
+  free_models_cost: $0.00
+  total_estimated: < $0.20
+evaluation:
+  max_tokens: 2000
+  runs_per_task: 1
+  temperature: 0.1
+  timeout: 60
+models:
+- cost_per_1k: 0.0
+  id: mistralai/mistral-7b-instruct:free
+  name: Mistral-7B-Free
+  type: small
+- cost_per_1k: 0.0
+  id: google/gemma-7b-it:free
+  name: Gemma-7B-Free
+  type: small
+- cost_per_1k: 0.0
+  id: meta-llama/llama-3-8b-instruct:free
+  name: Llama-3-8B-Free
+  type: small
+quick_test:
+  models:
+  - mistralai/mistral-7b-instruct:free
+  - deepseek/deepseek-chat
+  modes:
+  - 'off'
+  - lite
+  tasks:
+  - code_simple_001
+  - rag_simple_001
+reporting:
+  formats:
+  - markdown
+  - json
+  highlight_free_models: true
+  include_cost_analysis: true
+sgr_modes:
+- description: No structured guidance
+  name: 'off'
+- description: Minimal structure
+  name: lite
+  schema_fields:
+  - task_understanding
+  - solution
+- description: Full structured reasoning
+  name: full
+  schema_fields:
+  - requirements_analysis
+  - approach
+  - implementation
+  - validation
+test_categories:
+  agent_workflow:
+    count: 2
+    tasks:
+    - agent_code_001
+    - agent_rag_007
+  code_generation:
+    count: 3
+    tasks:
+    - code_simple_001
+    - code_api_002
+    - code_test_003
+  data_etl:
+    count: 2
+    tasks:
+    - data_clean_001
+    - data_transform_007
+  planning_decision:
+    count: 2
+    tasks:
+    - plan_arch_001
+    - plan_product_007
+  rag_qa:
+    count: 3
+    tasks:
+    - rag_simple_001
+    - rag_citation_002
+    - rag_conflict_003
+  summarization:
+    count: 2
+    tasks:
+    - sum_report_001
+    - sum_compare_007
