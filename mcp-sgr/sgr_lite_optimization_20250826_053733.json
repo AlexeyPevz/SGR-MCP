@@ -1,0 +1,339 @@
+{
+  "task": "Analyze this Python code for issues and suggest improvements:\ndef calculate_average(numbers):\n    return sum(numbers) / len(numbers)",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "summary": {
+        "type": "string"
+      },
+      "issues": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "improvements": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "confidence": {
+        "type": "number"
+      }
+    },
+    "required": [
+      "summary",
+      "issues",
+      "improvements",
+      "confidence"
+    ]
+  },
+  "strategies": {
+    "v1_current": {
+      "system": "You are a JSON-only assistant. Respond with STRICTLY valid JSON matching the provided schema.",
+      "prompt": "Task: {task}\n\nProvide a JSON response following this structure:\n{schema}\n\nBe concise but complete."
+    },
+    "v2_guided": {
+      "system": "You are an analytical assistant. Always respond in valid JSON format.",
+      "prompt": "Task: {task}\n\nAnalyze this step by step:\n1. Understand the task\n2. Identify key issues or points\n3. Suggest improvements\n\nFormat your response as JSON:\n{schema}\n\nInclude a confidence score (0-1) based on your analysis completeness."
+    },
+    "v3_example": {
+      "system": "You are a JSON assistant. Follow the example format exactly.",
+      "prompt": "Task: {task}\n\nRespond with JSON like this example:\n{{\n  \"summary\": \"Brief overview of the analysis\",\n  \"issues\": [\"First issue\", \"Second issue\"],\n  \"improvements\": [\"First suggestion\", \"Second suggestion\"],\n  \"confidence\": 0.8\n}}\n\nYour JSON response:"
+    },
+    "v4_structured": {
+      "system": "Provide structured JSON responses for all analyses.",
+      "prompt": "Task: {task}\n\nRequired JSON structure:\n{schema}\n\nGuidelines:\n- Summary: One sentence overview\n- Issues: List 2-3 specific problems (if any)\n- Improvements: List 2-3 actionable suggestions\n- Confidence: Rate 0-1 based on clarity of the task\n\nResponse:"
+    },
+    "v5_minimal": {
+      "system": "JSON responses only. Be direct and structured.",
+      "prompt": "Task: {task}\n\nJSON format: {{\"summary\": \"...\", \"issues\": [...], \"improvements\": [...], \"confidence\": 0.X}}\n\nAnalyze and respond:"
+    },
+    "v6_role": {
+      "system": "You are a code review expert. Communicate only in JSON.",
+      "prompt": "As an expert, analyze this task:\n{task}\n\nProvide your expert analysis in this JSON format:\n{schema}\n\nFocus on practical, actionable insights."
+    },
+    "v7_template": {
+      "system": "Fill in JSON templates with your analysis.",
+      "prompt": "Task: {task}\n\nFill this template with your analysis:\n{{\n  \"summary\": \"[Your 1-sentence summary here]\",\n  \"issues\": [\n    \"[Issue 1 if any]\",\n    \"[Issue 2 if any]\"\n  ],\n  \"improvements\": [\n    \"[Improvement 1]\",\n    \"[Improvement 2]\"\n  ],\n  \"confidence\": [0.0-1.0]\n}}"
+    },
+    "v8_direct": {
+      "system": "Expert analyst providing JSON-formatted insights.",
+      "prompt": "{task}\n\nRespond with JSON containing: summary, issues array, improvements array, confidence number."
+    }
+  },
+  "results": {
+    "anthropic/claude-3.5-haiku": {
+      "v1_current": {
+        "success": true,
+        "response": {
+          "summary": "Simple function to calculate average of a list of numbers",
+          "issues": [
+            "No input validation for empty list",
+            "No type checking for numeric input",
+            "No handling of potential division by zero"
+          ],
+          "improvements": [
+            "Add check for empty list before calculation",
+            "Add type checking for input elements",
+            "Use try/except to handle potential errors",
+            "Consider adding optional error handling parameter"
+          ],
+          "confidence": 0.85
+        },
+        "latency": 5.055072069168091,
+        "tokens": {
+          "prompt_tokens": 229,
+          "completion_tokens": 124,
+          "total_tokens": 353
+        },
+        "quality_score": 1.0
+      },
+      "v2_guided": {
+        "success": true,
+        "response": {
+          "summary": "A simple function to calculate the average of a list of numbers by dividing the sum by the length of the list",
+          "issues": [
+            "No error handling for empty list",
+            "No type checking for input",
+            "No handling of non-numeric inputs",
+            "Potential division by zero error"
+          ],
+          "improvements": [
+            "Add input validation to check if list is empty",
+            "Add type checking to ensure only numeric inputs",
+            "Use try/except to handle potential errors",
+            "Consider using statistics.mean() for more robust averaging",
+            "Add type hints for better code clarity",
+            "Add docstring to explain function behavior"
+          ],
+          "confidence": 0.85
+        },
+        "latency": 3.837249279022217,
+        "tokens": {
+          "prompt_tokens": 259,
+          "completion_tokens": 176,
+          "total_tokens": 435
+        },
+        "quality_score": 1.0
+      },
+      "v3_example": {
+        "success": true,
+        "response": {
+          "summary": "A simple function to calculate the average of a list of numbers with potential error handling concerns",
+          "issues": [
+            "No input validation for empty list",
+            "No type checking for numeric input",
+            "No handling of potential division by zero"
+          ],
+          "improvements": [
+            "Add a check to prevent division by zero when the list is empty",
+            "Add type checking to ensure all input elements are numeric",
+            "Consider using exception handling for more robust error management",
+            "Add optional parameter for handling empty list scenarios (e.g., default return value)"
+          ],
+          "confidence": 0.9
+        },
+        "latency": 3.7435333728790283,
+        "tokens": {
+          "prompt_tokens": 117,
+          "completion_tokens": 152,
+          "total_tokens": 269
+        },
+        "quality_score": 1.0
+      },
+      "v4_structured": {
+        "success": true,
+        "response": {
+          "summary": "A simple function to calculate the average of a list of numbers with minimal error handling.",
+          "issues": [
+            "No input validation for empty list",
+            "No type checking for numeric inputs",
+            "Potential division by zero error if input list is empty"
+          ],
+          "improvements": [
+            "Add input validation to check if the list is empty before calculation",
+            "Implement type checking to ensure only numeric values are processed",
+            "Consider adding error handling or returning a default value for edge cases"
+          ],
+          "confidence": 0.9
+        },
+        "latency": 3.031416416168213,
+        "tokens": {
+          "prompt_tokens": 266,
+          "completion_tokens": 138,
+          "total_tokens": 404
+        },
+        "quality_score": 1.0
+      },
+      "v5_minimal": {
+        "success": true,
+        "response": {
+          "summary": "Simple function to calculate average of a list of numbers",
+          "issues": [
+            "No input validation",
+            "Will raise ZeroDivisionError if list is empty",
+            "No type checking for numeric input"
+          ],
+          "improvements": [
+            "Add input validation to check for empty list",
+            "Add type checking to ensure all elements are numeric",
+            "Consider handling potential exceptions",
+            "Add optional parameter for handling empty list scenarios"
+          ],
+          "confidence": 0.85,
+          "recommended_refactored_code": "def calculate_average(numbers):\n    if not numbers:\n        return None\n    if not all(isinstance(x, (int, float)) for x in numbers):\n        raise TypeError('All elements must be numeric')\n    return sum(numbers) / len(numbers)"
+        },
+        "latency": 3.7834577560424805,
+        "tokens": {
+          "prompt_tokens": 83,
+          "completion_tokens": 205,
+          "total_tokens": 288
+        },
+        "quality_score": 0.85
+      },
+      "v6_role": {
+        "success": true,
+        "response": {
+          "summary": "Simple average calculation function with potential edge cases",
+          "issues": [
+            "No input validation for empty list",
+            "No type checking for numeric input",
+            "No handling of potential division by zero",
+            "No support for different numeric types"
+          ],
+          "improvements": [
+            "Add input validation to check for empty list",
+            "Add type checking to ensure numeric inputs",
+            "Implement error handling for zero-length lists",
+            "Consider adding optional type hints",
+            "Add docstring to explain function behavior",
+            "Potentially use statistics.mean() for more robust implementation"
+          ],
+          "confidence": 0.85
+        },
+        "latency": 3.8175995349884033,
+        "tokens": {
+          "prompt_tokens": 232,
+          "completion_tokens": 160,
+          "total_tokens": 392
+        },
+        "quality_score": 1.0
+      },
+      "v7_template": {
+        "success": true,
+        "response": {
+          "summary": "A simple function to calculate the average of a list of numbers with potential error handling limitations.",
+          "issues": [
+            "No input validation for empty list, which will raise a ZeroDivisionError",
+            "No type checking to ensure input is a list/iterable of numbers"
+          ],
+          "improvements": [
+            "Add a check to prevent division by zero when the list is empty",
+            "Add type and value validation to ensure input contains only numeric values",
+            "Consider using exception handling to gracefully manage potential errors"
+          ],
+          "confidence": 0.9
+        },
+        "latency": 3.591501235961914,
+        "tokens": {
+          "prompt_tokens": 147,
+          "completion_tokens": 143,
+          "total_tokens": 290
+        },
+        "quality_score": 0.9
+      },
+      "v8_direct": {
+        "success": false,
+        "error": "Expecting ',' delimiter: line 16 column 38 (char 603)",
+        "latency": 4.470670938491821
+      }
+    },
+    "openai/gpt-4o-mini": {
+      "v1_current": {
+        "success": false,
+        "error": "HTTP Error 400: Bad Request",
+        "latency": 0.8555786609649658
+      },
+      "v2_guided": {
+        "success": false,
+        "error": "HTTP Error 400: Bad Request",
+        "latency": 0.7576725482940674
+      },
+      "v3_example": {
+        "success": false,
+        "error": "HTTP Error 400: Bad Request",
+        "latency": 0.8842577934265137
+      },
+      "v4_structured": {
+        "success": false,
+        "error": "HTTP Error 400: Bad Request",
+        "latency": 0.7368757724761963
+      },
+      "v5_minimal": {
+        "success": false,
+        "error": "HTTP Error 400: Bad Request",
+        "latency": 0.9884688854217529
+      },
+      "v6_role": {
+        "success": false,
+        "error": "HTTP Error 400: Bad Request",
+        "latency": 0.9286074638366699
+      },
+      "v7_template": {
+        "success": false,
+        "error": "HTTP Error 400: Bad Request",
+        "latency": 0.8314285278320312
+      },
+      "v8_direct": {
+        "success": false,
+        "error": "HTTP Error 400: Bad Request",
+        "latency": 0.9434318542480469
+      }
+    },
+    "google/gemini-2.0-flash-exp:free": {
+      "v1_current": {
+        "success": false,
+        "error": "HTTP Error 429: Too Many Requests",
+        "latency": 0.8677277565002441
+      },
+      "v2_guided": {
+        "success": false,
+        "error": "HTTP Error 429: Too Many Requests",
+        "latency": 0.5475108623504639
+      },
+      "v3_example": {
+        "success": false,
+        "error": "HTTP Error 429: Too Many Requests",
+        "latency": 0.6219635009765625
+      },
+      "v4_structured": {
+        "success": false,
+        "error": "HTTP Error 429: Too Many Requests",
+        "latency": 0.7058506011962891
+      },
+      "v5_minimal": {
+        "success": false,
+        "error": "HTTP Error 429: Too Many Requests",
+        "latency": 0.4968903064727783
+      },
+      "v6_role": {
+        "success": false,
+        "error": "HTTP Error 429: Too Many Requests",
+        "latency": 0.43213844299316406
+      },
+      "v7_template": {
+        "success": false,
+        "error": "Expecting value: line 1 column 1 (char 0)",
+        "latency": 1.649789810180664
+      },
+      "v8_direct": {
+        "success": false,
+        "error": "HTTP Error 429: Too Many Requests",
+        "latency": 0.47878098487854004
+      }
+    }
+  },
+  "timestamp": "2025-08-26T05:37:33.707849"
+}

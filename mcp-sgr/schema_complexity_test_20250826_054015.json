@@ -1,0 +1,504 @@
+{
+  "task": "Analyze the security implications of storing passwords in plain text",
+  "schemas": {
+    "ultra_simple": {
+      "type": "object",
+      "properties": {
+        "analysis": {
+          "type": "string"
+        },
+        "score": {
+          "type": "number"
+        }
+      }
+    },
+    "simple": {
+      "type": "object",
+      "properties": {
+        "summary": {
+          "type": "string"
+        },
+        "issues": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "score": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "summary",
+        "issues"
+      ]
+    },
+    "moderate": {
+      "type": "object",
+      "properties": {
+        "summary": {
+          "type": "string"
+        },
+        "issues": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "maxItems": 5
+        },
+        "recommendations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "severity": {
+          "type": "string",
+          "enum": [
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ]
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      },
+      "required": [
+        "summary",
+        "issues",
+        "severity"
+      ]
+    },
+    "complex": {
+      "type": "object",
+      "properties": {
+        "analysis": {
+          "type": "object",
+          "properties": {
+            "summary": {
+              "type": "string"
+            },
+            "context": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "summary"
+          ]
+        },
+        "findings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "issue": {
+                "type": "string"
+              },
+              "impact": {
+                "type": "string"
+              },
+              "severity": {
+                "type": "string",
+                "enum": [
+                  "low",
+                  "medium",
+                  "high",
+                  "critical"
+                ]
+              }
+            },
+            "required": [
+              "issue",
+              "severity"
+            ]
+          }
+        },
+        "recommendations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "action": {
+                "type": "string"
+              },
+              "priority": {
+                "type": "number"
+              },
+              "effort": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "metadata": {
+          "type": "object",
+          "properties": {
+            "confidence": {
+              "type": "number"
+            },
+            "analysis_type": {
+              "type": "string"
+            },
+            "timestamp": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "required": [
+        "analysis",
+        "findings",
+        "recommendations"
+      ]
+    }
+  },
+  "results": {
+    "anthropic/claude-3.5-haiku": {
+      "ultra_simple": {
+        "success": true,
+        "latency": 6.140772342681885,
+        "response": {
+          "analysis": "Storing passwords in plain text is an extremely severe security vulnerability with multiple critical risks:\n\n1. Direct Password Exposure\n- Passwords are completely readable if database is compromised\n- Attackers can immediately use credentials without additional decryption\n- No protective barriers against unauthorized access\n\n2. Authentication Risks\n- Enables credential stuffing attacks\n- Facilitates large-scale identity theft\n- Compromises entire user authentication system\n\n3. Compliance Violations\n- Violates security standards like NIST, PCI-DSS\n- Potential legal and regulatory penalties\n- Demonstrates fundamental security negligence\n\n4. Potential Attack Vectors\n- SQL injection\n- Database breaches\n- Insider threats\n- Unauthorized database access\n\n5. Recommended Mitigation\n- Use strong cryptographic hashing (bcrypt, Argon2)\n- Implement salting techniques\n- Use one-way hashing algorithms\n- Never store passwords in recoverable format\n\nstoring passwords in plain text represents a catastrophic security design that exposes users to immediate and comprehensive risk.",
+          "score": 1.0
+        },
+        "missing_required": [],
+        "response_size": 1142
+      },
+      "simple": {
+        "success": true,
+        "latency": 5.1860268115997314,
+        "response": {
+          "summary": "Storing passwords in plain text represents a critical security vulnerability with severe potential consequences for user data and system integrity.",
+          "issues": [
+            "Direct exposure of user credentials if database is compromised",
+            "No protection against unauthorized access or data breaches",
+            "Violates fundamental security best practices and compliance standards",
+            "Enables immediate credential theft without additional decryption efforts",
+            "Provides attackers with complete login information for all user accounts",
+            "Increases risk of credential stuffing and account takeover attacks",
+            "Potential legal and regulatory non-compliance (GDPR, CCPA, HIPAA)",
+            "Undermines user trust and organizational security reputation"
+          ],
+          "score": 1.0,
+          "recommendations": [
+            "Implement strong password hashing with salting (e.g., bcrypt, Argon2)",
+            "Use one-way cryptographic hash functions",
+            "Never store passwords in reversible encryption",
+            "Implement multi-factor authentication",
+            "Enforce strong password complexity requirements"
+          ]
+        },
+        "missing_required": [],
+        "response_size": 1094
+      },
+      "moderate": {
+        "success": true,
+        "latency": 5.816804647445679,
+        "response": {
+          "summary": "Storing passwords in plain text represents a critical security vulnerability that exposes user credentials to significant risk of unauthorized access and potential data breaches.",
+          "issues": [
+            "Passwords are completely unencrypted and readable by anyone with database access",
+            "Passwords can be easily compromised if database is breached",
+            "Violates fundamental security principles of data protection",
+            "Exposes users to potential identity theft and account takeover",
+            "Non-compliant with security standards like OWASP and NIST guidelines"
+          ],
+          "recommendations": [
+            "Implement strong one-way cryptographic hashing (e.g., bcrypt, Argon2)",
+            "Use salted hash algorithms to prevent rainbow table attacks",
+            "Enable multi-factor authentication",
+            "Implement secure password storage mechanisms",
+            "Regularly audit and rotate credential storage methods"
+          ],
+          "severity": "critical",
+          "confidence": 0.95,
+          "potential_impact": {
+            "data_exposure_risk": "Extremely High",
+            "potential_breach_cost": "Significant"
+          }
+        },
+        "missing_required": [],
+        "response_size": 1074
+      },
+      "complex": {
+        "success": true,
+        "latency": 7.440846681594849,
+        "response": {
+          "analysis": {
+            "summary": "Storing passwords in plain text represents a critical security vulnerability with severe potential consequences for user data protection.",
+            "context": "Plain text password storage exposes user credentials to unauthorized access and potential misuse across multiple attack vectors."
+          },
+          "findings": [
+            {
+              "issue": "Direct credential exposure",
+              "impact": "Passwords can be immediately readable by anyone with database or system access",
+              "severity": "critical"
+            },
+            {
+              "issue": "No cryptographic protection",
+              "impact": "Passwords are stored without any encryption or hashing mechanism",
+              "severity": "high"
+            },
+            {
+              "issue": "Potential for mass credential theft",
+              "impact": "Entire user credential database can be compromised in a single breach",
+              "severity": "critical"
+            },
+            {
+              "issue": "Violation of security best practices",
+              "impact": "Non-compliance with industry standard security guidelines",
+              "severity": "high"
+            }
+          ],
+          "recommendations": [
+            {
+              "action": "Implement strong password hashing using bcrypt or Argon2",
+              "priority": 1,
+              "effort": "high"
+            },
+            {
+              "action": "Add per-user salt to password hashing process",
+              "priority": 2,
+              "effort": "medium"
+            },
+            {
+              "action": "Migrate existing plain text passwords securely",
+              "priority": 1,
+              "effort": "high"
+            },
+            {
+              "action": "Enforce password complexity and rotation policies",
+              "priority": 3,
+              "effort": "medium"
+            }
+          ],
+          "metadata": {
+            "confidence": 0.95,
+            "analysis_type": "security vulnerability assessment",
+            "timestamp": "2024-01-15T10:30:00Z"
+          }
+        },
+        "missing_required": [],
+        "response_size": 1731
+      },
+      "unstructured": {
+        "success": true,
+        "latency": 5.480334520339966,
+        "response": {
+          "summary": "Storing passwords in plain text represents a critical security vulnerability that exposes user credentials to significant risk of unauthorized access and potential data breaches.",
+          "issues": [
+            "Passwords are completely unencrypted and readable by anyone with database access",
+            "Potential for mass credential theft if database is compromised",
+            "Violates fundamental security best practices and compliance standards",
+            "Exposes users to credential stuffing and account takeover attacks",
+            "No protection against internal threats or unauthorized database access"
+          ],
+          "recommendations": [
+            "Implement strong password hashing using bcrypt, Argon2, or PBKDF2",
+            "Use salted hashes to prevent rainbow table attacks",
+            "Implement multi-factor authentication",
+            "Encrypt sensitive database columns",
+            "Regularly audit and rotate credentials"
+          ],
+          "severity": "critical",
+          "confidence": 0.95,
+          "potential_impact": {
+            "data_exposure_risk": "Extremely High",
+            "compliance_violations": [
+              "GDPR",
+              "HIPAA",
+              "PCI DSS"
+            ]
+          }
+        },
+        "missing_required": [],
+        "response_size": 1095
+      }
+    },
+    "openai/gpt-4o-mini": {
+      "ultra_simple": {
+        "success": false,
+        "error": "Provider returned error",
+        "http_code": 400,
+        "latency": 1.0215263366699219
+      },
+      "simple": {
+        "success": false,
+        "error": "Provider returned error",
+        "http_code": 400,
+        "latency": 0.803128719329834
+      },
+      "moderate": {
+        "success": false,
+        "error": "Provider returned error",
+        "http_code": 400,
+        "latency": 1.075265884399414
+      },
+      "complex": {
+        "success": false,
+        "error": "Provider returned error",
+        "http_code": 400,
+        "latency": 0.8975353240966797
+      },
+      "unstructured": {
+        "success": false,
+        "error": "JSON parse error: Expecting value: line 1 column 1 (char 0)",
+        "latency": 6.246375560760498,
+        "raw_response": "```json\n{\n  \"summary\": \"Storing passwords in plain text poses significant security risks, including unauthorized access, data breaches, and loss of user trust. It is a fundamental violation of securit"
+      }
+    },
+    "google/gemini-flash-1.5": {
+      "ultra_simple": {
+        "success": true,
+        "latency": 1.3575735092163086,
+        "response": {
+          "analysis": "Storing passwords in plain text presents an extremely high risk. If a data breach occurs, all passwords are immediately compromised, leading to identity theft, financial loss, and reputational damage for the organization.  Attackers can gain unauthorized access to accounts, systems, and sensitive data.  There is no protection against brute-force attacks or other password cracking techniques. Regulatory compliance is also severely jeopardized, potentially leading to significant fines and legal repercussions.  The impact is catastrophic and irreversible.  This practice is unacceptable and should never be implemented in any system.",
+          "score": 1.0
+        },
+        "missing_required": [],
+        "response_size": 666
+      },
+      "simple": {
+        "success": true,
+        "latency": 1.6532466411590576,
+        "response": {
+          "issues": [
+            "Storing passwords in plain text poses an extremely high risk of data breaches. If an attacker gains access to the system, all passwords are immediately compromised, leading to unauthorized access and potentially severe consequences.",
+            "Plain text storage violates all major security best practices and regulations like GDPR and CCPA, resulting in significant legal and financial liabilities.",
+            "Compromised passwords can be used for identity theft, financial fraud, and other malicious activities, causing irreparable harm to users and the organization.",
+            "The impact of a data breach involving plain text passwords is catastrophic, leading to loss of user trust, reputational damage, and potential business disruption."
+          ],
+          "summary": "Storing passwords in plain text is a critically severe security vulnerability with catastrophic consequences.  It exposes all passwords to unauthorized access, leading to identity theft, financial fraud, legal repercussions, and significant reputational damage. This practice is unacceptable and violates fundamental security principles.",
+          "score": 10
+        },
+        "missing_required": [],
+        "response_size": 1100
+      },
+      "moderate": {
+        "success": true,
+        "latency": 1.5766587257385254,
+        "response": {
+          "issues": [
+            "Storing passwords in plain text allows unauthorized access to user accounts and sensitive data.",
+            "Plain text passwords are easily compromised through various attack vectors, including data breaches, malware, and insider threats.",
+            "Compromised plain text passwords can lead to identity theft, financial loss, and reputational damage for both users and the organization."
+          ],
+          "severity": "critical",
+          "summary": "Storing passwords in plain text is a critical security vulnerability that exposes users and organizations to significant risks.  It is unacceptable in any system.",
+          "recommendations": [
+            "Implement strong password hashing algorithms such as bcrypt, Argon2, or scrypt.",
+            "Use a robust password management system that enforces strong password policies and securely stores passwords.",
+            "Regularly audit and monitor systems for any instances of plain text passwords.",
+            "Educate users on the importance of strong passwords and best practices for password security.",
+            "Employ multi-factor authentication (MFA) to add an extra layer of security."
+          ]
+        },
+        "missing_required": [],
+        "response_size": 1062
+      },
+      "complex": {
+        "success": true,
+        "latency": 3.082887649536133,
+        "response": {
+          "analysis": {
+            "summary": "Storing passwords in plain text is extremely risky and poses a severe security vulnerability.  If a system storing passwords in this manner is compromised, all user credentials are immediately exposed, leading to potential account takeovers, identity theft, and data breaches.",
+            "context": "This analysis assesses the security implications of storing passwords in plain text, considering various attack vectors and potential impacts."
+          },
+          "findings": [
+            {
+              "issue": "Direct exposure of passwords in plain text",
+              "severity": "critical",
+              "impact": "Complete compromise of user accounts, leading to unauthorized access, data breaches, identity theft, and financial loss."
+            },
+            {
+              "issue": "Lack of protection against various attacks",
+              "severity": "critical",
+              "impact": "Vulnerability to brute-force attacks, dictionary attacks, and other password cracking techniques."
+            },
+            {
+              "issue": "Non-compliance with security standards and regulations",
+              "severity": "high",
+              "impact": "Violation of industry best practices and regulatory requirements (e.g., GDPR, CCPA), leading to potential legal and financial penalties."
+            }
+          ],
+          "recommendations": [
+            {
+              "action": "Immediately cease storing passwords in plain text.",
+              "priority": 1.0
+            },
+            {
+              "action": "Implement strong password hashing algorithms (e.g., bcrypt, Argon2, scrypt) to securely store passwords.",
+              "priority": 1.0
+            },
+            {
+              "action": "Enforce strong password policies, including minimum length, complexity requirements, and regular password changes.",
+              "priority": 2.0
+            },
+            {
+              "action": "Implement multi-factor authentication (MFA) to add an extra layer of security.",
+              "priority": 2.0
+            },
+            {
+              "action": "Conduct regular security audits and penetration testing to identify and address vulnerabilities.",
+              "priority": 3.0
+            },
+            {
+              "action": "Educate users on secure password practices and the importance of avoiding password reuse.",
+              "priority": 3.0
+            }
+          ],
+          "metadata": {
+            "confidence": 0.95,
+            "timestamp": "2024-01-26T12:00:00Z"
+          }
+        },
+        "missing_required": [],
+        "response_size": 1943
+      },
+      "unstructured": {
+        "success": false,
+        "error": "JSON parse error: Expecting value: line 1 column 1 (char 0)",
+        "latency": 3.096604585647583,
+        "raw_response": "```json\n{\n  \"type\": \"object\",\n  \"properties\": {\n    \"summary\": \"Storing passwords in plain text is a critically severe security vulnerability.  If an attacker gains access to the system storing these "
+      }
+    },
+    "openai/gpt-4o": {
+      "ultra_simple": {
+        "success": false,
+        "error": "Provider returned error",
+        "http_code": 400,
+        "latency": 1.2540292739868164
+      },
+      "simple": {
+        "success": false,
+        "error": "Provider returned error",
+        "http_code": 400,
+        "latency": 1.038032054901123
+      },
+      "moderate": {
+        "success": false,
+        "error": "Provider returned error",
+        "http_code": 400,
+        "latency": 0.515838623046875
+      },
+      "complex": {
+        "success": false,
+        "error": "Provider returned error",
+        "http_code": 400,
+        "latency": 0.79714035987854
+      },
+      "unstructured": {
+        "success": false,
+        "error": "JSON parse error: Expecting value: line 1 column 1 (char 0)",
+        "latency": 3.7172653675079346,
+        "raw_response": "```json\n{\n  \"summary\": \"Storing passwords in plain text is a critical security vulnerability that exposes user credentials to unauthorized access and potential misuse. This practice can lead to severe"
+      }
+    }
+  },
+  "timestamp": "2025-08-26T05:40:15.089698"
+}
