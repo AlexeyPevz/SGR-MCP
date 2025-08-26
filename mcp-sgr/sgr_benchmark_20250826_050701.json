@@ -1,0 +1,181 @@
+{
+  "timestamp": "2025-08-26T05:07:01.584547",
+  "summary": {
+    "baseline_avg_quality": 0.67,
+    "sgr_lite_avg_quality": 0.42200000000000004,
+    "sgr_full_avg_quality": 0.732,
+    "baseline_avg_latency": 9479.666666666666,
+    "sgr_lite_avg_latency": 8328.8,
+    "sgr_full_avg_latency": 16042.0
+  },
+  "detailed_results": [
+    {
+      "model": "google/gemini-2.0-flash-exp:free",
+      "tier": "ultra_cheap",
+      "scenario": "code_analysis",
+      "baseline": {
+        "success": false,
+        "latency": 714,
+        "quality_score": 0
+      },
+      "sgr_lite": {
+        "success": false,
+        "latency": 630,
+        "quality_score": 0
+      },
+      "sgr_full": {
+        "success": false,
+        "latency": 555,
+        "quality_score": 0,
+        "steps": 1
+      }
+    },
+    {
+      "model": "google/gemini-2.0-flash-exp:free",
+      "tier": "ultra_cheap",
+      "scenario": "planning",
+      "baseline": {
+        "success": false,
+        "latency": 639,
+        "quality_score": 0
+      },
+      "sgr_lite": {
+        "success": true,
+        "latency": 5483,
+        "quality_score": 0.9550000000000001
+      },
+      "sgr_full": {
+        "success": true,
+        "latency": 11002,
+        "quality_score": 0.9550000000000001,
+        "steps": 2
+      }
+    },
+    {
+      "model": "openai/gpt-4o-mini",
+      "tier": "cheap",
+      "scenario": "code_analysis",
+      "baseline": {
+        "success": true,
+        "latency": 6274,
+        "quality_score": 0.9550000000000001
+      },
+      "sgr_lite": {
+        "success": false,
+        "latency": 1014,
+        "quality_score": 0
+      },
+      "sgr_full": {
+        "success": false,
+        "latency": 948,
+        "quality_score": 0,
+        "steps": 1
+      }
+    },
+    {
+      "model": "openai/gpt-4o-mini",
+      "tier": "cheap",
+      "scenario": "planning",
+      "baseline": {
+        "success": true,
+        "latency": 17408,
+        "quality_score": 0.9550000000000001
+      },
+      "sgr_lite": {
+        "success": false,
+        "latency": 1025,
+        "quality_score": 0
+      },
+      "sgr_full": {
+        "success": false,
+        "latency": 876,
+        "quality_score": 0,
+        "steps": 1
+      }
+    },
+    {
+      "model": "anthropic/claude-3.5-haiku",
+      "tier": "medium",
+      "scenario": "code_analysis",
+      "baseline": {
+        "success": true,
+        "latency": 4335,
+        "quality_score": 0.9550000000000001
+      },
+      "sgr_lite": {
+        "success": true,
+        "latency": 11177,
+        "quality_score": 0.0
+      },
+      "sgr_full": {
+        "success": true,
+        "latency": 13154,
+        "quality_score": 0.9550000000000001,
+        "steps": 2
+      }
+    },
+    {
+      "model": "anthropic/claude-3.5-haiku",
+      "tier": "medium",
+      "scenario": "planning",
+      "baseline": {
+        "success": true,
+        "latency": 10694,
+        "quality_score": 0.9550000000000001
+      },
+      "sgr_lite": {
+        "success": true,
+        "latency": 11672,
+        "quality_score": 0.9550000000000001
+      },
+      "sgr_full": {
+        "success": true,
+        "latency": 18394,
+        "quality_score": 0.9550000000000001,
+        "steps": 2
+      }
+    },
+    {
+      "model": "meta-llama/llama-3.1-8b-instruct",
+      "tier": "cheap",
+      "scenario": "code_analysis",
+      "baseline": {
+        "success": true,
+        "latency": 6761,
+        "quality_score": 0.2
+      },
+      "sgr_lite": {
+        "success": true,
+        "latency": 1226,
+        "quality_score": 0.0
+      },
+      "sgr_full": {
+        "success": true,
+        "latency": 17264,
+        "quality_score": 0.595,
+        "steps": 2
+      }
+    },
+    {
+      "model": "meta-llama/llama-3.1-8b-instruct",
+      "tier": "cheap",
+      "scenario": "planning",
+      "baseline": {
+        "success": true,
+        "latency": 11406,
+        "quality_score": 0.0
+      },
+      "sgr_lite": {
+        "success": true,
+        "latency": 12086,
+        "quality_score": 0.2
+      },
+      "sgr_full": {
+        "success": true,
+        "latency": 20396,
+        "quality_score": 0.2,
+        "steps": 2
+      }
+    }
+  ]
+}
