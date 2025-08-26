@@ -1,0 +1,105 @@
+# Comprehensive test with working models
+
+models:
+  # Free models
+  - id: "mistralai/mistral-7b-instruct:free"
+    name: "Mistral-7B-Free"
+    type: "small"
+    cost_per_1k: 0.0
+    
+  # Ultra budget models ($0.00002/1k)
+  - id: "mistralai/ministral-3b"
+    name: "Ministral-3B"
+    type: "tiny"
+    cost_per_1k: 0.00002
+    
+  - id: "mistralai/ministral-8b"
+    name: "Ministral-8B"
+    type: "small"
+    cost_per_1k: 0.00002
+    
+  # Budget models
+  - id: "deepseek/deepseek-chat"
+    name: "DeepSeek-Chat"
+    type: "large"
+    cost_per_1k: 0.00014
+    
+  - id: "qwen/qwen-2.5-7b-instruct"
+    name: "Qwen-2.5-7B"
+    type: "small"
+    cost_per_1k: 0.00018
+    
+  - id: "qwen/qwen-2.5-32b-instruct"
+    name: "Qwen-2.5-32B"
+    type: "medium"
+    cost_per_1k: 0.00018
+    
+  - id: "qwen/qwen-2.5-72b-instruct"
+    name: "Qwen-2.5-72B"
+    type: "large"
+    cost_per_1k: 0.00018
+    
+  # Medium cost models
+  - id: "openai/gpt-3.5-turbo"
+    name: "GPT-3.5-Turbo"
+    type: "medium"
+    cost_per_1k: 0.0005
+    
+  - id: "anthropic/claude-3-haiku"
+    name: "Claude-3-Haiku"
+    type: "small"
+    cost_per_1k: 0.00025
+    
+  # Additional test
+  - id: "meta-llama/llama-3.1-8b-instruct:free"
+    name: "Llama-3.1-8B-Free"
+    type: "small"
+    cost_per_1k: 0.0
+
+sgr_modes:
+  - name: "off"
+    description: "No structured guidance"
+    
+  - name: "lite"
+    description: "Minimal structure"
+    schema_fields: ["task_understanding", "solution"]
+    
+  - name: "full"
+    description: "Full structured reasoning"
+    schema_fields: ["requirements_analysis", "approach", "implementation", "validation"]
+
+# Test multiple tasks from each category
+test_categories:
+  code_generation:
+    count: 6
+    
+  rag_qa:
+    count: 6
+    
+  summarization:
+    count: 4
+    
+  planning_decision:
+    count: 4
+    
+  data_etl:
+    count: 4
+    
+  agent_workflow:
+    count: 4
+
+# Total: 28 tasks × 10 models × 3 modes = 840 API calls
+# Estimated cost: ~$0.30
+
+evaluation:
+  runs_per_task: 1
+  temperature: 0.1
+  max_tokens: 2000
+  timeout: 60
+
+reporting:
+  formats: ["markdown", "json", "csv"]
+  include_cost_analysis: true
+  highlight_free_models: true
+  track_latency_percentiles: true
+  generate_category_analysis: true
