@@ -1,0 +1,111 @@
+# SGR Benchmark: Top Models vs Budget Models
+version: "1.0"
+
+# Models to test
+models:
+  # Top tier models
+  - id: "openai/gpt-4o"
+    name: "GPT-4o"
+    type: "top"
+    cost_per_1k: 0.0025  # input cost
+    
+  - id: "anthropic/claude-3.5-sonnet"
+    name: "Claude-3.5-Sonnet"
+    type: "top"
+    cost_per_1k: 0.003
+    
+  # Mid tier
+  - id: "openai/gpt-3.5-turbo"
+    name: "GPT-3.5-Turbo"
+    type: "mid"
+    cost_per_1k: 0.0005
+    
+  - id: "anthropic/claude-3-haiku"
+    name: "Claude-3-Haiku"
+    type: "mid"
+    cost_per_1k: 0.00025
+    
+  # Budget models
+  - id: "mistralai/mistral-7b-instruct:free"
+    name: "Mistral-7B-Free"
+    type: "budget"
+    cost_per_1k: 0.0
+    
+  - id: "ministral/ministral-8b-2410"
+    name: "Ministral-8B"
+    type: "budget"
+    cost_per_1k: 0.00002
+    
+  - id: "deepseek/deepseek-chat"
+    name: "DeepSeek-Chat"
+    type: "budget"
+    cost_per_1k: 0.00014
+    
+  - id: "qwen/qwen-2.5-7b-instruct"
+    name: "Qwen-2.5-7B"
+    type: "budget"
+    cost_per_1k: 0.00015
+    
+  - id: "meta-llama/llama-3.2-3b-instruct:free"
+    name: "Llama-3.2-3B-Free"
+    type: "budget"
+    cost_per_1k: 0.0
+
+# SGR modes
+sgr_modes:
+  - name: "off"
+    description: "Baseline without SGR"
+    
+  - name: "lite"
+    description: "Lightweight structured guidance"
+    schema_fields: ["task_understanding", "solution"]
+    
+  - name: "full"
+    description: "Comprehensive structured analysis"
+    schema_fields: ["requirements_analysis", "approach", "implementation", "validation"]
+
+# Test categories (simplified format)
+test_categories:
+  codegen:
+    tasks: ["code_cli_converter_001", "code_string_utils_002", "code_rest_api_003", 
+            "code_graph_algos_004", "code_jwt_auth_005", "code_bug_fix_006",
+            "code_react_component_008", "code_test_generation_010"]
+    weight: 2.0
+    
+  rag:
+    tasks: ["rag_factual_qa_001", "rag_multidoc_synthesis_002", "rag_conflicting_sources_003"]
+    weight: 1.5
+    
+  summarization:
+    tasks: ["sum_report_001", "sum_technical_doc_002"]
+    weight: 1.0
+    
+  planning:
+    tasks: ["plan_pwa_architecture_001", "plan_ml_pipeline_002"]
+    weight: 1.0
+    
+  data:
+    tasks: ["data_email_validation_001", "data_csv_to_json_003", "data_fuzzy_matching_004"]
+    weight: 1.0
+    
+  agent:
+    tasks: ["agent_bug_to_patch_001", "agent_rag_chain_004"]
+    weight: 1.5
+
+# Evaluation settings
+evaluation:
+  metrics:
+    - accuracy
+    - completeness
+    - coherence
+    - efficiency
+  composite_scoring: true
+
+# Reporting settings  
+reporting:
+  formats:
+    - json
+    - markdown
+    - csv
+  include_artifacts: true
+  visualization: true
