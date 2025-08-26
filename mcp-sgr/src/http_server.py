@@ -1,26 +1,22 @@
 """HTTP facade for MCP-SGR server."""
 
-import os
 import logging
-from typing import Any, Dict, Optional, List
-from contextlib import asynccontextmanager
-
+import os
 import time
-from fastapi import FastAPI, HTTPException, Depends, Header, Request
+from contextlib import asynccontextmanager
+from typing import Any, Dict, List, Optional
+
+import uvicorn
+from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-import uvicorn
 
-from .utils.llm_client import LLMClient
+from .tools import apply_sgr_tool, enhance_prompt_tool, learn_schema_tool, wrap_agent_call_tool
 from .utils.cache import CacheManager
-from .utils.telemetry import TelemetryManager
-from .tools import (
-    apply_sgr_tool,
-    wrap_agent_call_tool,
-    enhance_prompt_tool,
-    learn_schema_tool
-)
+from .utils.llm_client import LLMClient
 from .utils.logging_config import setup_logging
+from .utils.telemetry import TelemetryManager
+
 setup_logging()
 
 logger = logging.getLogger(__name__)
@@ -28,6 +24,7 @@ logger = logging.getLogger(__name__)
 
 class SimpleRateLimiter:
     """Naive in-memory rate limiter (per key per minute)."""
+
     def __init__(self, enabled: bool = False, max_rpm: int = 120):
         self.enabled = enabled
         self.max_rpm = max_rpm
@@ -54,14 +51,18 @@ class ApplySGRRequest(BaseModel):
     task: str = Field(..., description="The task or problem to analyze")
     context: Optional[Dict[str, Any]] = Field(default={}, description="Additional context")
     schema_type: str = Field(default="auto", description="Schema type to use")
-    custom_schema: Optional[Dict[str, Any]] = Field(default=None, description="Custom schema definition")
+    custom_schema: Optional[Dict[str, Any]] = Field(
+        default=None, description="Custom schema definition"
+    )
     budget: str = Field(default="lite", description="Reasoning budget depth")
 
 
 class WrapAgentRequest(BaseModel):
     agent_endpoint: str = Field(..., description="Agent endpoint URL or identifier")
     agent_request: Dict[str, Any] = Field(..., description="Request payload for the agent")
-    sgr_config: Optional[Dict[str, Any]] = Field(default_factory=dict, description="SGR configuration")
+    sgr_config: Optional[Dict[str, Any]] = Field(
+        default_factory=dict, description="SGR configuration"
+    )
 
 
 class EnhancePromptRequest(BaseModel):
@@ -71,7 +72,9 @@ class EnhancePromptRequest(BaseModel):
 
 
 class LearnSchemaRequest(BaseModel):
-    examples: List[Dict[str, Any]] = Field(..., description="Example inputs and expected reasoning", min_length=3)
+    examples: List[Dict[str, Any]] = Field(
+        ..., description="Example inputs and expected reasoning", min_length=3
+    )
     task_type: str = Field(..., description="Name for the new schema/task type")
     description: Optional[str] = Field(default=None, description="Description of the schema")
 
@@ -94,13 +97,13 @@ rate_limiter: Optional[SimpleRateLimiter] = None
 async def lifespan(app: FastAPI):
     """Manage application lifecycle."""
     global llm_client, cache_manager, telemetry_manager, rate_limiter
-    
+
     # Startup
     logger.info("Starting HTTP facade...")
     llm_client = LLMClient()
     cache_manager = CacheManager()
     telemetry_manager = TelemetryManager()
-    
+
     await cache_manager.initialize()
     await telemetry_manager.initialize()
 
@@ -108,9 +111,9 @@ async def lifespan(app: FastAPI):
     rate_enabled = os.getenv("RATE_LIMIT_ENABLED", "false").lower() == "true"
     max_rpm = int(os.getenv("RATE_LIMIT_MAX_RPM", "120"))
     rate_limiter = SimpleRateLimiter(rate_enabled, max_rpm)
-    
+
     yield
-    
+
     # Shutdown
     logger.info("Shutting down HTTP facade...")
     if llm_client:
@@ -126,12 +129,14 @@ app = FastAPI(
     title="MCP-SGR HTTP API",
     description="HTTP facade for Schema-Guided Reasoning middleware",
     version="0.1.0",
-    lifespan=lifespan
+    lifespan=lifespan,
 )
 
 # Add CORS middleware (configurable via ENV)
 cors_origins_env = os.getenv("HTTP_CORS_ORIGINS", "*")
-allow_origins = [o.strip() for o in cors_origins_env.split(",") if o.strip()] if cors_origins_env else ["*"]
+allow_origins = (
+    [o.strip() for o in cors_origins_env.split(",") if o.strip()] if cors_origins_env else ["*"]
+)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allow_origins,
@@ -174,7 +179,7 @@ async def health_check():
         status="healthy",
         version="0.1.0",
         cache_enabled=cache_manager.enabled if cache_manager else False,
-        trace_enabled=telemetry_manager.enabled if telemetry_manager else False
+        trace_enabled=telemetry_manager.enabled if telemetry_manager else False,
     )
 
 
@@ -182,12 +187,12 @@ async def health_check():
 async def apply_sgr(
     request: ApplySGRRequest,
     authorized: bool = Depends(verify_api_key),
-    _: bool = Depends(verify_rate_limit)
+    _: bool = Depends(verify_rate_limit),
 ):
     """Apply SGR schema to analyze a task."""
     if not authorized:
         raise HTTPException(status_code=401, detail="Invalid API key")
-    
+
     if not llm_client or not cache_manager or not telemetry_manager:
         raise HTTPException(status_code=503, detail="Service not initialized")
     try:
@@ -195,7 +200,7 @@ async def apply_sgr(
             arguments=request.dict(),
             llm_client=llm_client,
             cache_manager=cache_manager,
-            telemetry=telemetry_manager
+            telemetry=telemetry_manager,
         )
         return result
     except Exception as e:
@@ -207,12 +212,12 @@ async def apply_sgr(
 async def wrap_agent(
     request: WrapAgentRequest,
     authorized: bool = Depends(verify_api_key),
-    _: bool = Depends(verify_rate_limit)
+    _: bool = Depends(verify_rate_limit),
 ):
     """Wrap agent call with pre/post analysis."""
     if not authorized:
         raise HTTPException(status_code=401, detail="Invalid API key")
-    
+
     if not llm_client or not cache_manager or not telemetry_manager:
         raise HTTPException(status_code=503, detail="Service not initialized")
     try:
@@ -220,7 +225,7 @@ async def wrap_agent(
             arguments=request.dict(),
             llm_client=llm_client,
             cache_manager=cache_manager,
-            telemetry=telemetry_manager
+            telemetry=telemetry_manager,
         )
         return result
     except Exception as e:
@@ -232,19 +237,17 @@ async def wrap_agent(
 async def enhance_prompt(
     request: EnhancePromptRequest,
     authorized: bool = Depends(verify_api_key),
-    _: bool = Depends(verify_rate_limit)
+    _: bool = Depends(verify_rate_limit),
 ):
     """Enhance a prompt with SGR structure."""
     if not authorized:
         raise HTTPException(status_code=401, detail="Invalid API key")
-    
+
     if not llm_client or not cache_manager:
         raise HTTPException(status_code=503, detail="Service not initialized")
     try:
         result = await enhance_prompt_tool(
-            arguments=request.dict(),
-            llm_client=llm_client,
-            cache_manager=cache_manager
+            arguments=request.dict(), llm_client=llm_client, cache_manager=cache_manager
         )
         return result
     except Exception as e:
@@ -256,19 +259,16 @@ async def enhance_prompt(
 async def learn_schema(
     request: LearnSchemaRequest,
     authorized: bool = Depends(verify_api_key),
-    _: bool = Depends(verify_rate_limit)
+    _: bool = Depends(verify_rate_limit),
 ):
     """Learn new schema from examples."""
     if not authorized:
         raise HTTPException(status_code=401, detail="Invalid API key")
-    
+
     if not llm_client:
         raise HTTPException(status_code=503, detail="Service not initialized")
     try:
-        result = await learn_schema_tool(
-            arguments=request.dict(),
-            llm_client=llm_client
-        )
+        result = await learn_schema_tool(arguments=request.dict(), llm_client=llm_client)
         return result
     except Exception as e:
         logger.error(f"Error in learn_schema: {e}", exc_info=True)
@@ -282,9 +282,9 @@ async def list_schemas(
     """List available schemas."""
     if not authorized:
         raise HTTPException(status_code=401, detail="Invalid API key")
-    
+
     from .schemas import SCHEMA_REGISTRY
-    
+
     schemas: Dict[str, Any] = {}
     for name, schema_factory in SCHEMA_REGISTRY.items():
         schema = schema_factory()
@@ -292,7 +292,7 @@ async def list_schemas(
             "description": schema.get_description(),
             "fields": [f.name for f in schema.get_fields()],
         }
-    
+
     return schemas
 
 
@@ -303,10 +303,10 @@ async def get_cache_stats(
     """Get cache statistics."""
     if not authorized:
         raise HTTPException(status_code=401, detail="Invalid API key")
-    
+
     if not cache_manager:
         return {"enabled": False}
-    
+
     return await cache_manager.get_cache_stats()
 
 
@@ -315,15 +315,15 @@ async def get_traces(
     limit: int = 10,
     tool_name: Optional[str] = None,
     authorized: bool = Depends(verify_api_key),
-    _: bool = Depends(verify_rate_limit)
+    _: bool = Depends(verify_rate_limit),
 ):
     """Get recent reasoning traces."""
     if not authorized:
         raise HTTPException(status_code=401, detail="Invalid API key")
-    
+
     if not cache_manager:
         return []
-    
+
     return await cache_manager.get_recent_traces(limit=limit, tool_name=tool_name)
 
 
@@ -334,7 +334,7 @@ def run_http_server(host: str = "127.0.0.1", port: int = 8080):
         host=host,
         port=port,
         reload=os.getenv("RELOAD", "false").lower() == "true",
-        log_level=os.getenv("LOG_LEVEL", "info").lower()
+        log_level=os.getenv("LOG_LEVEL", "info").lower(),
     )
 
 

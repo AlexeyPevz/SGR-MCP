@@ -1,0 +1,209 @@
+{
+  "timestamp": "2025-08-26T03:58:27.382789+00:00",
+  "models": {
+    "cheap": [
+      "qwen/qwen-2.5-7b-instruct",
+      "mistralai/mistral-7b-instruct"
+    ],
+    "strong": [
+      "google/gemini-2.5-flash-lite"
+    ]
+  },
+  "tasks": {
+    "analysis": "Identify performance bottlenecks in a simple Flask API and suggest fixes",
+    "code_generation": "Write a Python function to chunk a list into N-sized parts",
+    "summarization": "Summarize a paragraph about HTTP caching strategies"
+  },
+  "runs": {
+    "cheap": {
+      "qwen/qwen-2.5-7b-instruct": {
+        "analysis": {
+          "baseline": {
+            "valid": true,
+            "confidence": 0.9,
+            "error": null,
+            "latency_ms": 10040
+          },
+          "sgr_lite": {
+            "valid": true,
+            "confidence": 0.9,
+            "error": null,
+            "latency_ms": 9541
+          },
+          "sgr_full": {
+            "valid": true,
+            "confidence": 0.9,
+            "error": null,
+            "latency_ms": 12337
+          }
+        },
+        "code_generation": {
+          "baseline": {
+            "valid": true,
+            "confidence": 0.9,
+            "error": null,
+            "latency_ms": 14023
+          },
+          "sgr_lite": {
+            "valid": true,
+            "confidence": 0.9,
+            "error": null,
+            "latency_ms": 18657
+          },
+          "sgr_full": {
+            "valid": true,
+            "confidence": 0.9,
+            "error": null,
+            "latency_ms": 16258
+          }
+        },
+        "summarization": {
+          "baseline": {
+            "valid": true,
+            "confidence": 0.9,
+            "error": null,
+            "latency_ms": 48096
+          },
+          "sgr_lite": {
+            "valid": true,
+            "confidence": 0.8,
+            "error": null,
+            "latency_ms": 54286
+          },
+          "sgr_full": {
+            "valid": true,
+            "confidence": 0.9,
+            "error": null,
+            "latency_ms": 57771
+          }
+        }
+      },
+      "mistralai/mistral-7b-instruct": {
+        "analysis": {
+          "baseline": {
+            "valid": true,
+            "confidence": 0.9,
+            "error": null,
+            "latency_ms": 8297
+          },
+          "sgr_lite": {
+            "valid": true,
+            "confidence": 0.9,
+            "error": null,
+            "latency_ms": 8306
+          },
+          "sgr_full": {
+            "valid": false,
+            "confidence": 0.0,
+            "error": null,
+            "latency_ms": 4077
+          }
+        },
+        "code_generation": {
+          "baseline": {
+            "valid": false,
+            "confidence": 0.0,
+            "error": null,
+            "latency_ms": 2996
+          },
+          "sgr_lite": {
+            "valid": false,
+            "confidence": 0.0,
+            "error": null,
+            "latency_ms": 9144
+          },
+          "sgr_full": {
+            "valid": true,
+            "confidence": 0.9,
+            "error": null,
+            "latency_ms": 8992
+          }
+        },
+        "summarization": {
+          "baseline": {
+            "valid": false,
+            "confidence": 0.0,
+            "error": null,
+            "latency_ms": 12699
+          },
+          "sgr_lite": {
+            "valid": false,
+            "confidence": 0.0,
+            "error": null,
+            "latency_ms": 20535
+          },
+          "sgr_full": {
+            "valid": false,
+            "confidence": 0.0,
+            "error": null,
+            "latency_ms": 10200
+          }
+        }
+      }
+    },
+    "strong": {
+      "google/gemini-2.5-flash-lite": {
+        "analysis": {
+          "baseline": {
+            "valid": true,
+            "confidence": 0.9,
+            "error": null,
+            "latency_ms": 1712
+          },
+          "sgr_lite": {
+            "valid": true,
+            "confidence": 0.9,
+            "error": null,
+            "latency_ms": 3225
+          },
+          "sgr_full": {
+            "valid": true,
+            "confidence": 0.9,
+            "error": null,
+            "latency_ms": 3671
+          }
+        },
+        "code_generation": {
+          "baseline": {
+            "valid": true,
+            "confidence": 0.9,
+            "error": null,
+            "latency_ms": 2165
+          },
+          "sgr_lite": {
+            "valid": true,
+            "confidence": 0.9,
+            "error": null,
+            "latency_ms": 1991
+          },
+          "sgr_full": {
+            "valid": true,
+            "confidence": 0.9,
+            "error": null,
+            "latency_ms": 34591
+          }
+        },
+        "summarization": {
+          "baseline": {
+            "valid": false,
+            "confidence": 0.0,
+            "error": null,
+            "latency_ms": 3642
+          },
+          "sgr_lite": {
+            "valid": true,
+            "confidence": 0.8,
+            "error": null,
+            "latency_ms": 3263
+          },
+          "sgr_full": {
+            "valid": false,
+            "confidence": 0.0,
+            "error": null,
+            "latency_ms": 3649
+          }
+        }
+      }
+    }
+  }
+}

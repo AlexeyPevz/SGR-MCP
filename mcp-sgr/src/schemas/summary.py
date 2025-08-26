@@ -120,7 +120,9 @@ class SummarizationSchema(BaseSchema):
                     },
                 ],
                 "summary": {
+                    # noqa: E501
                     "executive_summary": "The RFC proposes a major API redesign focusing on versioning, authentication, and performance. The new system moves from URL-based to header-based versioning, replaces API keys with OAuth 2.0, and introduces a Redis caching layer for improved performance.",
+                    # noqa: E501
                     "detailed_summary": "This RFC outlines a comprehensive API v2.0 upgrade addressing three critical areas:\n\n1. **Versioning Strategy**: The proposal shifts from URL path versioning (/v1/, /v2/) to header-based versioning using 'API-Version' headers. This change allows cleaner URLs and better version negotiation. Unspecified versions will default to v1.0 until deprecation.\n\n2. **Authentication Overhaul**: API keys will be replaced with OAuth 2.0 authentication. This provides better security through token rotation and scope-based permissions. Existing API keys remain valid for 30 days post-launch.\n\n3. **Performance Enhancements**: A new Redis-based caching layer will reduce response times by approximately 30%. Cache TTL is configurable per endpoint, with intelligent invalidation based on resource updates.\n\n**Migration Plan**: A 6-month phased approach ensures smooth transition:\n- Months 1-3: Both APIs run in parallel\n- Months 4-5: Deprecation warnings on v1 endpoints\n- Month 6: v1 API sunset\n\n**Critical Actions Required**:\n- Update client libraries to support header-based versioning\n- Implement OAuth 2.0 flow before API key expiration\n- Review caching implications for real-time data endpoints",
                     "technical_notes": [
                         "Header format: 'API-Version: 2.0' (semantic versioning)",

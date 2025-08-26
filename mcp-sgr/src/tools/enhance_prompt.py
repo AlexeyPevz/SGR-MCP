@@ -2,7 +2,7 @@
 
 import json
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from ..schemas import SCHEMA_REGISTRY
 from ..utils.cache import CacheManager
@@ -32,6 +32,7 @@ async def enhance_prompt_tool(
 
         # Check cache with stable key
         import hashlib
+
         key_payload = {
             "original_prompt": original_prompt,
             "target_model": target_model,
@@ -41,7 +42,7 @@ async def enhance_prompt_tool(
         cache_key = f"enhance:{hashlib.sha256(key_str.encode('utf-8')).hexdigest()}"
         cached_result = await cache_manager.get(cache_key)
         if cached_result:
-            logger.info(f"Cache hit for prompt enhancement")
+            logger.info("Cache hit for prompt enhancement")
             return cached_result
 
         # Analyze the prompt to determine best schema
@@ -130,7 +131,7 @@ Respond in JSON format:
 
         return analysis
 
-    except:
+    except Exception:
         # Fallback analysis
         return {
             "intent": "General task execution",
@@ -184,7 +185,7 @@ async def _standard_enhancement(original: str, analysis: Dict[str, Any], schema:
 
     # Get schema fields
     fields = schema.get_fields()
-    required_fields = [f for f in fields if f.required]
+    _ = [f for f in fields if f.required]
 
     # Build structured prompt
     enhanced = f"""{original}
@@ -317,7 +318,7 @@ You need to provide a comprehensive, structured response following this exact sc
     # Add quality criteria
     enhanced += """Quality criteria for your response:
 1. **Completeness**: Address all required fields thoroughly
-2. **Specificity**: Provide concrete details, not generalizations  
+2. **Specificity**: Provide concrete details, not generalizations
 3. **Actionability**: Include specific next steps
 4. **Validation**: Consider edge cases and risks
 5. **Clarity**: Use clear, unambiguous language

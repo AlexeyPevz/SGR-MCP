@@ -4,7 +4,12 @@ This example shows how to enhance AutoGen agents with structured reasoning.
 """
 
 import asyncio
-from autogen import AssistantAgent, UserProxyAgent, GroupChat, GroupChatManager
+
+try:
+	from autogen_agentchat.agents import AssistantAgent, UserProxyAgent
+	from autogen_agentchat.teams import RoundRobinGroupChat as GroupChat
+except Exception as _e:
+	raise SystemExit("AutoGen packages not installed. Install pyautogen>=0.10.0.")
 
 # Import SGR integration
 from sgr_autogen import SGRAgent, create_sgr_assistant, wrap_autogen_agent, SGRGroupChatManager
@@ -116,7 +121,7 @@ def example_3_group_chat_with_sgr():
     )
     
     # Standard manager for execution
-    manager = GroupChatManager(groupchat=groupchat)
+    manager = groupchat  # Use the GroupChat instance directly for this example
     
     # Start group chat
     user_proxy.initiate_chat(

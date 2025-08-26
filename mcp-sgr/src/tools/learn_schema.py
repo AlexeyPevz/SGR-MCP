@@ -3,9 +3,9 @@
 import json
 import logging
 from collections import defaultdict
-from typing import Any, Dict, List, DefaultDict, Set
+from typing import Any, DefaultDict, Dict, List
 
-from ..schemas.custom import SchemaBuilder
+from ..schemas.builder import SchemaBuilder
 from ..utils.llm_client import LLMClient
 
 logger = logging.getLogger(__name__)
@@ -189,7 +189,7 @@ Return a JSON with:
 
     try:
         llm_patterns = json.loads(llm_response.strip().strip("```json").strip("```"))
-    except:
+    except Exception:
         llm_patterns = {
             "patterns": ["structured analysis", "step-by-step reasoning"],
             "reasoning_flow": ["understand", "analyze", "conclude"],

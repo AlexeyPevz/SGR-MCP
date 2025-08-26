@@ -74,7 +74,9 @@ class RoutingRule:
                     try:
                         numeric_value = float(right.strip())
                     except ValueError:
-                        logger.error(f"Right-hand side is not numeric in condition '{self.condition}'")
+                        logger.error(
+                            f"Right-hand side is not numeric in condition '{self.condition}'"
+                        )
                         return False
                     current_val = self._resolve_field(context, field)
                     try:

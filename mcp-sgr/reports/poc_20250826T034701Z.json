@@ -1,0 +1,112 @@
+{
+  "timestamp": "2025-08-26T03:44:58.089326+00:00",
+  "models": {
+    "cheap": [
+      "qwen/qwen-2.5-7b-instruct",
+      "mistralai/mistral-7b-instruct"
+    ],
+    "strong": [
+      "google/gemini-2.5-flash-lite"
+    ]
+  },
+  "tasks": {
+    "analysis": "Identify performance bottlenecks in a simple Flask API and suggest fixes",
+    "code_generation": "Write a Python function to chunk a list into N-sized parts"
+  },
+  "runs": {
+    "cheap": {
+      "qwen/qwen-2.5-7b-instruct": {
+        "analysis": {
+          "baseline": {
+            "valid": true,
+            "confidence": 0.9,
+            "error": null,
+            "latency_ms": 9983
+          },
+          "sgr_lite": {
+            "valid": true,
+            "confidence": 0.9,
+            "error": null,
+            "latency_ms": 10059
+          }
+        },
+        "code_generation": {
+          "baseline": {
+            "valid": true,
+            "confidence": 0.9,
+            "error": null,
+            "latency_ms": 16164
+          },
+          "sgr_lite": {
+            "valid": true,
+            "confidence": 0.9,
+            "error": null,
+            "latency_ms": 20150
+          }
+        }
+      },
+      "mistralai/mistral-7b-instruct": {
+        "analysis": {
+          "baseline": {
+            "valid": false,
+            "confidence": 0.0,
+            "error": null,
+            "latency_ms": 12211
+          },
+          "sgr_lite": {
+            "valid": false,
+            "confidence": 0.0,
+            "error": null,
+            "latency_ms": 14301
+          }
+        },
+        "code_generation": {
+          "baseline": {
+            "valid": false,
+            "confidence": 0.0,
+            "error": null,
+            "latency_ms": 21794
+          },
+          "sgr_lite": {
+            "valid": false,
+            "confidence": 0.0,
+            "error": null,
+            "latency_ms": 10094
+          }
+        }
+      }
+    },
+    "strong": {
+      "google/gemini-2.5-flash-lite": {
+        "analysis": {
+          "baseline": {
+            "valid": true,
+            "confidence": 0.9,
+            "error": null,
+            "latency_ms": 2484
+          },
+          "sgr_lite": {
+            "valid": true,
+            "confidence": 0.9,
+            "error": null,
+            "latency_ms": 2523
+          }
+        },
+        "code_generation": {
+          "baseline": {
+            "valid": true,
+            "confidence": 0.9,
+            "error": null,
+            "latency_ms": 1398
+          },
+          "sgr_lite": {
+            "valid": true,
+            "confidence": 0.9,
+            "error": null,
+            "latency_ms": 1870
+          }
+        }
+      }
+    }
+  }
+}

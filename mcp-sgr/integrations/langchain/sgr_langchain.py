@@ -8,10 +8,10 @@ from langchain.schema.runnable import Runnable, RunnableConfig
 from langchain.callbacks.manager import CallbackManagerForChainRun
 from langchain.schema import BaseMessage, HumanMessage, AIMessage
 
-from ...src.tools import apply_sgr_tool, wrap_agent_call_tool
-from ...src.utils.llm_client import LLMClient
-from ...src.utils.cache import CacheManager
-from ...src.utils.telemetry import TelemetryManager
+from src.tools import apply_sgr_tool, wrap_agent_call_tool
+from src.utils.llm_client import LLMClient
+from src.utils.cache import CacheManager
+from src.utils.telemetry import TelemetryManager
 
 
 class SGRRunnable(Runnable):

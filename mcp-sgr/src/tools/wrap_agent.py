@@ -197,6 +197,7 @@ async def _enhance_request(
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=0.5, min=1, max=4))
 async def _http_post_with_retry(url: str, json_body: Dict[str, Any]) -> Dict[str, Any]:
     import os
+
     total_timeout = float(os.getenv("AGENT_REQUEST_TIMEOUT_SECONDS", "30"))
     timeout = aiohttp.ClientTimeout(total=total_timeout)
     headers = {"Content-Type": "application/json"}

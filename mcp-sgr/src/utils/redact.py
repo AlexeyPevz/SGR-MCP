@@ -4,7 +4,7 @@ import hashlib
 import logging
 import re
 from dataclasses import dataclass
-from typing import Any, Dict, List, Match, Optional, Pattern, Set, Tuple
+from typing import Any, Dict, List, Match, Optional, Pattern, Tuple
 
 logger = logging.getLogger(__name__)
 

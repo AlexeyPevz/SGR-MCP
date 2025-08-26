@@ -1,6 +1,5 @@
 """Cache manager for SGR results and traces."""
 
-import asyncio
 import json
 import logging
 import os
@@ -55,7 +54,7 @@ class CacheManager:
 					expires_at TIMESTAMP,
 					hit_count INTEGER DEFAULT 0
 				)
-			"""
+			"""  # noqa: W191,E101
             )
             await self._cache_db.commit()
 
@@ -75,7 +74,7 @@ class CacheManager:
 					duration_ms INTEGER,
 					metadata TEXT
 				)
-			"""
+			"""  # noqa: W191,E101
             )
             await self._trace_db.commit()
 
@@ -294,7 +293,11 @@ class CacheManager:
                 stats["total_hits"] = (await cursor.fetchone())[0] or 0
 
             # Hit rate
-            if isinstance(stats.get("total_hits"), int) and isinstance(stats.get("total_entries"), int) and stats["total_hits"] > 0:
+            if (
+                isinstance(stats.get("total_hits"), int)
+                and isinstance(stats.get("total_entries"), int)
+                and stats["total_hits"] > 0
+            ):
                 denominator = stats["total_hits"] + stats["total_entries"]
                 stats["hit_rate"] = (stats["total_hits"] / denominator) if denominator > 0 else 0.0
             else:
@@ -325,7 +328,7 @@ class CacheManager:
 					       SELECT key FROM cache_entries 
 					       ORDER BY hit_count ASC, created_at ASC 
 					       LIMIT ?
-					   )""",
+					   )""",  # noqa: W191,E101
                     (to_delete,),
                 )
                 await self._cache_db.commit()
@@ -348,7 +351,7 @@ class CacheManager:
 					       SELECT key FROM cache_entries 
 					       ORDER BY LENGTH(value) DESC, created_at ASC 
 					       LIMIT 10
-					   )"""
+					   )"""  # noqa: W191,E101
                 )
                 await self._cache_db.commit()
                 logger.info(f"Cleaned up large cache entries, size was {size_mb:.1f}MB")

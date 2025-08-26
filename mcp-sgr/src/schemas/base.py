@@ -4,7 +4,7 @@ import json
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 import jsonschema
 from pydantic import BaseModel, Field
@@ -101,30 +101,30 @@ class BaseSchema(ABC):
         properties = {}
         required = []
 
-        for field in self.get_fields():
-            prop: Dict[str, Any] = {"type": field.type}
+        for schema_field in self.get_fields():
+            prop: Dict[str, Any] = {"type": schema_field.type}
 
-            if field.description:
-                prop["description"] = field.description
+            if schema_field.description:
+                prop["description"] = schema_field.description
 
-            if field.enum:
-                prop["enum"] = field.enum
+            if schema_field.enum:
+                prop["enum"] = schema_field.enum
 
-            if field.type == "string":
-                if field.min_length:
-                    prop["minLength"] = field.min_length
-                if field.max_length:
-                    prop["maxLength"] = field.max_length
-                if field.pattern:
-                    prop["pattern"] = field.pattern
+            if schema_field.type == "string":
+                if schema_field.min_length:
+                    prop["minLength"] = schema_field.min_length
+                if schema_field.max_length:
+                    prop["maxLength"] = schema_field.max_length
+                if schema_field.pattern:
+                    prop["pattern"] = schema_field.pattern
 
-            if field.default is not None:
-                prop["default"] = field.default
+            if schema_field.default is not None:
+                prop["default"] = schema_field.default
 
-            properties[field.name] = prop
+            properties[schema_field.name] = prop
 
-            if field.required:
-                required.append(field.name)
+            if schema_field.required:
+                required.append(schema_field.name)
 
         return {
             "$id": f"schema://{self.schema_id}",
@@ -166,11 +166,13 @@ class BaseSchema(ABC):
             return current
 
         # Check for empty arrays that shouldn't be empty
-        for f in self.get_fields():
-            if f.type == "array" and f.required:
-                value = get_nested_value(data, f.name)
+        for schema_field in self.get_fields():
+            if schema_field.type == "array" and schema_field.required:
+                value = get_nested_value(data, schema_field.name)
                 if isinstance(value, list) and len(value) == 0:
-                    warnings.append(f"Field '{f.name}' is empty but should contain items")
+                    warnings.append(
+                        f"Field '{schema_field.name}' is empty but should contain items"
+                    )
 
         return warnings
 
@@ -185,10 +187,10 @@ class BaseSchema(ABC):
         confidence -= min(len(warnings) * 0.1, 0.5)
 
         # Reduce for very short top-level string fields when present
-        for field in self.get_fields():
-            if field.type == "string":
+        for schema_field in self.get_fields():
+            if schema_field.type == "string":
                 # Support dotted notation
-                parts = field.name.split(".")
+                parts = schema_field.name.split(".")
                 current: Any = data
                 for part in parts:
                     if isinstance(current, dict) and part in current:
