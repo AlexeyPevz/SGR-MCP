@@ -357,7 +357,9 @@ async def add_security_headers(request: Request, call_next):
 @app.middleware("http")
 async def rate_limit_middleware(request: Request, call_next):
     """Apply rate limiting based on IP address or API key."""
-    if rate_limiter and rate_limiter.enabled:
+    # Re-evaluate env flag per-request to avoid cross-test leakage
+    env_enabled = os.getenv("RATE_LIMIT_ENABLED", "false").lower() == "true"
+    if rate_limiter and rate_limiter.enabled and env_enabled:
         # Use API key if present, otherwise IP address
         api_key = request.headers.get("x-api-key")
         client_id = api_key if api_key else request.client.host if request.client else "unknown"

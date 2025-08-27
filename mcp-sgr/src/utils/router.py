@@ -324,3 +324,6 @@ class ModelRouter:
     def get_retry_config(self) -> Dict[str, Any]:
         """Get retry configuration."""
         return self.retry_config.copy()
+
+# Backward-compatible alias expected by tests
+SGRRouter = ModelRouter  # pragma: no cover
