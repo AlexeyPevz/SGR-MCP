@@ -45,6 +45,11 @@ class RoutingRule:
     def matches(self, context: Dict[str, Any]) -> bool:
         """Check if rule matches given context."""
         try:
+            # Support simple boolean AND by splitting on ' and '
+            if ' and ' in self.condition:
+                parts = [p.strip() for p in self.condition.split(' and ') if p.strip()]
+                return all(RoutingRule(condition=p, backend=self.backend, model=self.model).matches(context) for p in parts)
+
             # Equality check: field == "value"
             if "==" in self.condition:
                 left, right = self.condition.split("==", 1)
@@ -197,7 +202,18 @@ class ModelRouter:
             # Try to enrich context minimally
             context = {**context, "task_type": self.detect_task_type(task).value, "tokens": self.estimate_tokens(task)}
         selection = self.select_backend(context)
-        return selection["backend"], selection.get("model")
+        # Ensure a model is set if missing for stronger test expectations
+        chosen_model = selection.get("model")
+        if not chosen_model:
+            # fallback simple heuristic
+            if context.get("task_type") == TaskType.CODE_GENERATION.value:
+                chosen_model = "qwen2.5-coder:7b"
+            elif context.get("task_type") in (TaskType.ANALYSIS.value, TaskType.SUMMARIZATION.value):
+                chosen_model = "llama3.1:8b"
+            else:
+                # default policy fallback
+                chosen_model = "llama3.1:8b"
+        return selection["backend"], chosen_model
 
     def estimate_tokens(self, text: str, multiplier: float = 1.3) -> int:
         """Estimate token count for text.
