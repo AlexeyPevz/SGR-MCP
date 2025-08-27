@@ -3,7 +3,7 @@
 import asyncio
 import json
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional, Any
 from contextlib import asynccontextmanager
 
@@ -69,7 +69,7 @@ class AuditLogger:
         sanitized_response = self._sanitize_data(response_data) if response_data else None
         
         audit_log = AuditLog(
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             user_id=user_id,
             organization_id=organization_id,
             api_key_id=api_key_id,
@@ -258,7 +258,7 @@ class AuditLogger:
         hours: int = 24
     ) -> List[AuditLog]:
         """Get security-related events for the last N hours."""
-        start_time = datetime.utcnow() - timedelta(hours=hours)
+        start_time = datetime.now(timezone.utc) - timedelta(hours=hours)
         
         security_actions = [
             "login_failed",
@@ -291,7 +291,7 @@ class AuditLogger:
         hours: int = 24
     ) -> Dict[str, Any]:
         """Get usage summary for organization."""
-        start_time = datetime.utcnow() - timedelta(hours=hours)
+        start_time = datetime.now(timezone.utc) - timedelta(hours=hours)
         
         logs = await self.search_logs(
             organization_id=organization_id,
@@ -377,7 +377,7 @@ class AuditLogger:
                 for log in self._logs:
                     await self.cache_manager.set_cache(
                         f"audit_log:{log.id}",
-                        log.dict(),
+                        log.model_dump(),
                         ttl=86400 * 30  # 30 days
                     )
             
@@ -389,7 +389,7 @@ class AuditLogger:
                 
                 with open(log_file, "a") as f:
                     for log in self._logs:
-                        f.write(json.dumps(log.dict(), default=str) + "\n")
+                        f.write(json.dumps(log.model_dump(), default=str) + "\n")
             except Exception as e:
                 logger.error(f"Failed to write audit logs to file: {e}")
             
@@ -420,7 +420,7 @@ async def audit_context(
     **kwargs
 ):
     """Context manager for automatic audit logging."""
-    start_time = datetime.utcnow()
+    start_time = datetime.now(timezone.utc)
     error_message = None
     
     try:
@@ -431,7 +431,7 @@ async def audit_context(
         error_message = str(e)
         raise
     finally:
-        duration_ms = (datetime.utcnow() - start_time).total_seconds() * 1000
+        duration_ms = (datetime.now(timezone.utc) - start_time).total_seconds() * 1000
         
         await audit_logger.log_action(
             action=action,

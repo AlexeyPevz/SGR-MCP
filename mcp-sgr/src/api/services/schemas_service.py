@@ -34,7 +34,7 @@ async def learn_schema_service(request: LearnSchemaRequest) -> Dict[str, Any]:
         raise HTTPException(status_code=503, detail="Service not initialized")
 
     try:
-        return await learn_schema_tool(arguments=request.dict(), llm_client=llm_client)  # type: ignore[arg-type]
+        return await learn_schema_tool(arguments=request.model_dump(), llm_client=llm_client)  # type: ignore[arg-type]
     except Exception as exc:
         logger.error("Error in learn_schema_service: %s", exc, exc_info=True)
         raise HTTPException(status_code=500, detail=str(exc)) from exc

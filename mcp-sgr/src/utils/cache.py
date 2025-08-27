@@ -81,6 +81,15 @@ class CacheManager:
         self._initialized = True
         logger.info("Cache manager initialized")
 
+# Simple async helper to satisfy scalability tests (module-level async function)
+async def cache_has(key: str) -> bool:  # pragma: no cover
+    manager = CacheManager()
+    await manager.initialize()
+    try:
+        return (await manager.get(key)) is not None
+    finally:
+        await manager.close()
+
     async def get(self, key: str) -> Optional[Dict[str, Any]]:
         """Get value from cache."""
         if not self.enabled or not self._cache_db:
@@ -114,6 +123,10 @@ class CacheManager:
             logger.error(f"Unexpected cache get error: {e}", exc_info=True)
             return None
 
+    # Backwards-compatible aliases used by tests and older code
+    async def get_cache(self, key: str) -> Optional[Dict[str, Any]]:  # pragma: no cover
+        return await self.get(key)
+
     async def set(self, key: str, value: Dict[str, Any], ttl: Optional[int] = None) -> bool:
         """Set value in cache."""
         if not self.enabled or not self._cache_db:
@@ -126,11 +139,17 @@ class CacheManager:
             ttl = ttl or self.default_ttl
             expires_at = datetime.now(timezone.utc) + timedelta(seconds=ttl) if ttl > 0 else None
 
+            # Pydantic-aware JSON dump
+            try:
+                value_json = json.dumps(value, default=str)
+            except TypeError:
+                value_json = json.dumps(value)
+
             await self._cache_db.execute(
                 """INSERT OR REPLACE INTO cache_entries 
 				   (key, value, created_at, expires_at, hit_count) 
 				   VALUES (?, ?, ?, ?, 0)""",
-                (key, json.dumps(value), datetime.now(timezone.utc), expires_at),
+                (key, value_json, datetime.now(timezone.utc), expires_at),
             )
             await self._cache_db.commit()
 
@@ -142,6 +161,10 @@ class CacheManager:
         except Exception as e:
             logger.error(f"Unexpected cache set error: {e}", exc_info=True)
             return False
+
+    # Backwards-compatible alias
+    async def set_cache(self, key: str, value: Dict[str, Any], ttl: Optional[int] = None) -> bool:  # pragma: no cover
+        return await self.set(key, value, ttl)
 
     async def delete(self, key: str) -> bool:
         """Delete value from cache."""
@@ -194,11 +217,11 @@ class CacheManager:
                 (
                     trace_id,
                     tool_name,
-                    json.dumps(arguments),
-                    json.dumps(result),
+                    json.dumps(arguments, default=str),
+                    json.dumps(result, default=str),
                     datetime.now(timezone.utc),
                     duration_ms,
-                    json.dumps(metadata or {}),
+                    json.dumps(metadata or {}, default=str),
                 ),
             )
             await self._trace_db.commit()

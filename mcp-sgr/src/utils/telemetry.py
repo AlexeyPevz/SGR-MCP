@@ -215,17 +215,17 @@ class TelemetryManager:
 
         return None
 
+    async def record_tool_call(self, tool_name: str, arguments: Dict[str, Any], result: Dict[str, Any]):
+        """Compatibility helper for tests: record a simple tool call event."""
+        span_id = await self.start_span(f"tool:{tool_name}", {"tool": tool_name})
+        await self.add_event(span_id, "tool.arguments", {"size": len(str(arguments))})
+        await self.add_event(span_id, "tool.result", {"size": len(str(result))})
+        await self.end_span(span_id, {"status": "ok"})
+
     async def create_metric(
         self, name: str, value: float, unit: str = "", labels: Optional[Dict[str, str]] = None
     ):
-        """Record a metric (placeholder for future metrics support).
-
-        Args:
-            name: Metric name
-            value: Metric value
-            unit: Unit of measurement
-            labels: Metric labels
-        """
+        """Record a metric (placeholder for future metrics support)."""
         # Record metric using OpenTelemetry
         if not self.enabled:
             return

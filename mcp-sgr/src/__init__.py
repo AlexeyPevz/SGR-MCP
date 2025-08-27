@@ -3,9 +3,9 @@
 __version__ = "0.1.0"
 __author__ = "MCP-SGR Team"
 
-from .server import SGRServer
-
-__all__ = ["SGRServer"]
+# Avoid importing server-level objects at module import time to prevent circular imports.
+# Export utilities that are safe to import from submodules and tests.
+__all__ = ["include_routers"]
 
 # Re-export router factory for app
 from fastapi import FastAPI

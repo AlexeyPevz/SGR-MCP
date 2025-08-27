@@ -25,7 +25,7 @@ async def apply_sgr_service(request: ApplySGRRequest) -> Dict[str, Any]:
 
     try:
         return await apply_sgr_tool(  # type: ignore[arg-type]
-            arguments=request.dict(),
+            arguments=request.model_dump(),
             llm_client=llm_client,
             cache_manager=cache_manager,
             telemetry=telemetry_manager,
