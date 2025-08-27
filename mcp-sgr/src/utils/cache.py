@@ -81,6 +81,15 @@ class CacheManager:
         self._initialized = True
         logger.info("Cache manager initialized")
 
+# Simple async helper to satisfy scalability tests (module-level async function)
+async def cache_has(key: str) -> bool:  # pragma: no cover
+    manager = CacheManager()
+    await manager.initialize()
+    try:
+        return (await manager.get(key)) is not None
+    finally:
+        await manager.close()
+
     async def get(self, key: str) -> Optional[Dict[str, Any]]:
         """Get value from cache."""
         if not self.enabled or not self._cache_db:
