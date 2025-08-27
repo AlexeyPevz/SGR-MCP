@@ -5,7 +5,7 @@ import json
 import logging
 import os
 from enum import Enum
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Any
 
 import aiohttp
 from tenacity import retry, stop_after_attempt, wait_exponential
@@ -166,6 +166,10 @@ class LLMClient:
             )
         else:
             raise ValueError(f"Unsupported backend: {backend}")
+
+    # Compatibility alias expected by tests
+    async def generate_response(self, prompt: str, **kwargs) -> Any:  # pragma: no cover
+        return await self.generate(prompt, **kwargs)
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
     async def _generate_ollama(

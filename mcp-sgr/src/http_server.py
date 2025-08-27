@@ -10,8 +10,9 @@ from typing import Any, Dict, List, Optional
 
 import uvicorn
 from fastapi import Depends, FastAPI, Header, HTTPException, Request, Response
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 import yaml
 import re
 import jwt
@@ -92,8 +93,9 @@ class ApplySGRRequest(BaseModel):
     )
     budget: str = Field(default="lite", description="Reasoning budget depth", pattern="^(lite|standard|full)$")
     
-    @validator('task')
-    def validate_task_safety(cls, v):
+    @field_validator('task')
+    @classmethod
+    def validate_task_safety(cls, v: str) -> str:
         return validate_safe_input(v)
 
 
@@ -104,13 +106,37 @@ class WrapAgentRequest(BaseModel):
         default_factory=dict, description="SGR configuration"
     )
     
-    @validator('agent_endpoint')
-    def validate_endpoint_safety(cls, v):
+    @field_validator('agent_endpoint')
+    @classmethod
+    def validate_endpoint_safety(cls, v: str) -> str:
         if not v.startswith(('http://', 'https://')):
             # Allow named endpoints for internal routing
             if not re.match(r'^[a-zA-Z0-9_-]+$', v):
                 raise ValueError("Invalid endpoint format")
         return v
+# Utility: sanitize arbitrary data to be JSON-safe (avoid Mock/AsyncMock recursion)
+def _sanitize_for_json(obj: Any) -> Any:
+    try:
+        if obj is None or isinstance(obj, (str, int, float, bool)):
+            return obj
+        if isinstance(obj, dict):
+            return {str(k): _sanitize_for_json(v) for k, v in obj.items()}
+        if isinstance(obj, list):
+            return [_sanitize_for_json(v) for v in obj]
+        if isinstance(obj, tuple):
+            return tuple(_sanitize_for_json(v) for v in obj)
+        # Pydantic models
+        try:
+            from pydantic import BaseModel as _BM
+            if isinstance(obj, _BM):
+                return _sanitize_for_json(obj.model_dump())
+        except Exception:
+            pass
+        # Fallback to string
+        return str(obj)
+    except Exception:
+        return str(obj)
+
 
 
 class EnhancePromptRequest(BaseModel):
@@ -118,12 +144,14 @@ class EnhancePromptRequest(BaseModel):
     target_model: Optional[str] = Field(default=None, description="Target model identifier", max_length=100)
     enhancement_level: str = Field(default="standard", description="Enhancement level", pattern="^(minimal|standard|aggressive)$")
     
-    @validator('original_prompt')
-    def validate_prompt_safety(cls, v):
+    @field_validator('original_prompt')
+    @classmethod
+    def validate_prompt_safety(cls, v: str) -> str:
         return validate_safe_input(v)
     
-    @validator('target_model')
-    def validate_model_name(cls, v):
+    @field_validator('target_model')
+    @classmethod
+    def validate_model_name(cls, v: str | None) -> str | None:
         if v and not re.match(r'^[a-zA-Z0-9/_.-]+$', v):
             raise ValueError("Invalid model name format")
         return v
@@ -136,8 +164,9 @@ class LearnSchemaRequest(BaseModel):
     task_type: str = Field(..., description="Name for the new schema/task type", max_length=50, pattern="^[a-zA-Z0-9_-]+$")
     description: Optional[str] = Field(default=None, description="Description of the schema", max_length=1000)
     
-    @validator('description')
-    def validate_description_safety(cls, v):
+    @field_validator('description')
+    @classmethod
+    def validate_description_safety(cls, v: str | None) -> str | None:
         if v:
             return validate_safe_input(v)
         return v
@@ -183,12 +212,17 @@ async def lifespan(app: FastAPI):
     # Initialize AI optimization (if enabled)
     global adaptive_router, smart_cache, cost_optimizer
     ai_optimization_enabled = os.getenv("AI_OPTIMIZATION_ENABLED", "true").lower() == "true"
-    
+
     if ai_optimization_enabled:
-        from .ai_optimization.adaptive_router import AdaptiveRouter
-        from .ai_optimization.smart_cache import SmartCacheManager
-        from .ai_optimization.cost_optimizer import CostOptimizer
-        
+        try:
+            from .ai_optimization.adaptive_router import AdaptiveRouter
+            from .ai_optimization.smart_cache import SmartCacheManager
+            from .ai_optimization.cost_optimizer import CostOptimizer
+        except Exception:
+            logger.warning("AI optimization modules unavailable; disabling optimization features")
+            ai_optimization_enabled = False
+
+    if ai_optimization_enabled:
         adaptive_router = AdaptiveRouter(cache_manager)
         smart_cache = SmartCacheManager(cache_manager)
         cost_optimizer = CostOptimizer(cache_manager)
@@ -515,12 +549,12 @@ async def apply_sgr(
         raise HTTPException(status_code=503, detail="Service not initialized")
     try:
         result = await apply_sgr_tool(
-            arguments=request.dict(),
+            arguments=request.model_dump(),
             llm_client=llm_client,
             cache_manager=cache_manager,
             telemetry=telemetry_manager,
         )
-        return result
+        return JSONResponse(content=_sanitize_for_json(result))
     except Exception as e:
         logger.error(f"Error in apply_sgr: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
@@ -540,12 +574,12 @@ async def wrap_agent(
         raise HTTPException(status_code=503, detail="Service not initialized")
     try:
         result = await wrap_agent_call_tool(
-            arguments=request.dict(),
+            arguments=request.model_dump(),
             llm_client=llm_client,
             cache_manager=cache_manager,
             telemetry=telemetry_manager,
         )
-        return result
+        return JSONResponse(content=_sanitize_for_json(result))
     except Exception as e:
         logger.error(f"Error in wrap_agent: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
@@ -565,9 +599,9 @@ async def enhance_prompt(
         raise HTTPException(status_code=503, detail="Service not initialized")
     try:
         result = await enhance_prompt_tool(
-            arguments=request.dict(), llm_client=llm_client, cache_manager=cache_manager
+            arguments=request.model_dump(), llm_client=llm_client, cache_manager=cache_manager
         )
-        return result
+        return JSONResponse(content=_sanitize_for_json(result))
     except Exception as e:
         logger.error(f"Error in enhance_prompt: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
@@ -586,8 +620,8 @@ async def learn_schema(
     if not llm_client:
         raise HTTPException(status_code=503, detail="Service not initialized")
     try:
-        result = await learn_schema_tool(arguments=request.dict(), llm_client=llm_client)
-        return result
+        result = await learn_schema_tool(arguments=request.model_dump(), llm_client=llm_client)
+        return JSONResponse(content=_sanitize_for_json(result))
     except Exception as e:
         logger.error(f"Error in learn_schema: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
@@ -735,7 +769,7 @@ async def batch_apply_sgr(
         async def process_request(request: ApplySGRRequest):
             async with semaphore:
                 return await apply_sgr_tool(
-                    arguments=request.dict(),
+                    arguments=request.model_dump(),
                     llm_client=llm_client,
                     cache_manager=cache_manager,
                     telemetry_manager=telemetry_manager
@@ -832,7 +866,7 @@ async def create_organization(
                 changes={"name": org.name, "plan": org.plan}
             )
         
-        return org.dict()
+        return org.model_dump()
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -866,7 +900,7 @@ async def create_user(
                 changes={"email": user.email, "role": user.role.value}
             )
         
-        return user.dict()
+        return user.model_dump()
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -961,7 +995,7 @@ async def get_audit_logs(
             limit=limit
         )
         
-        return [log.dict() for log in logs]
+        return [log.model_dump() for log in logs]
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -980,7 +1014,7 @@ async def get_security_events(
         hours=hours
     )
     
-    return [event.dict() for event in events]
+    return [event.model_dump() for event in events]
 
 
 @app.get("/v1/profile", tags=["users"])
@@ -1001,8 +1035,8 @@ async def get_user_profile(
     permissions = await rbac_manager.get_user_permissions(user.id)
     
     return {
-        "user": user.dict(),
-        "api_key": api_key.dict() if api_key else None,
+        "user": user.model_dump(),
+        "api_key": api_key.model_dump() if api_key else None,
         "stats": stats,
         "permissions": [p.value for p in permissions]
     }
