@@ -114,6 +114,10 @@ class CacheManager:
             logger.error(f"Unexpected cache get error: {e}", exc_info=True)
             return None
 
+    # Backwards-compatible aliases used by tests and older code
+    async def get_cache(self, key: str) -> Optional[Dict[str, Any]]:  # pragma: no cover
+        return await self.get(key)
+
     async def set(self, key: str, value: Dict[str, Any], ttl: Optional[int] = None) -> bool:
         """Set value in cache."""
         if not self.enabled or not self._cache_db:
@@ -142,6 +146,10 @@ class CacheManager:
         except Exception as e:
             logger.error(f"Unexpected cache set error: {e}", exc_info=True)
             return False
+
+    # Backwards-compatible alias
+    async def set_cache(self, key: str, value: Dict[str, Any], ttl: Optional[int] = None) -> bool:  # pragma: no cover
+        return await self.set(key, value, ttl)
 
     async def delete(self, key: str) -> bool:
         """Delete value from cache."""

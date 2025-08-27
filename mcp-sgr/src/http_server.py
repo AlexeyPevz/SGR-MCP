@@ -86,11 +86,11 @@ def validate_safe_input(value: str) -> str:
 class ApplySGRRequest(BaseModel):
     task: str = Field(..., description="The task or problem to analyze", max_length=10000)
     context: Optional[Dict[str, Any]] = Field(default={}, description="Additional context")
-    schema_type: str = Field(default="auto", description="Schema type to use", regex="^[a-zA-Z0-9_-]+$")
+    schema_type: str = Field(default="auto", description="Schema type to use", pattern="^[a-zA-Z0-9_-]+$")
     custom_schema: Optional[Dict[str, Any]] = Field(
         default=None, description="Custom schema definition"
     )
-    budget: str = Field(default="lite", description="Reasoning budget depth", regex="^(lite|standard|full)$")
+    budget: str = Field(default="lite", description="Reasoning budget depth", pattern="^(lite|standard|full)$")
     
     @validator('task')
     def validate_task_safety(cls, v):
@@ -116,7 +116,7 @@ class WrapAgentRequest(BaseModel):
 class EnhancePromptRequest(BaseModel):
     original_prompt: str = Field(..., description="The original prompt to enhance", max_length=10000)
     target_model: Optional[str] = Field(default=None, description="Target model identifier", max_length=100)
-    enhancement_level: str = Field(default="standard", description="Enhancement level", regex="^(minimal|standard|aggressive)$")
+    enhancement_level: str = Field(default="standard", description="Enhancement level", pattern="^(minimal|standard|aggressive)$")
     
     @validator('original_prompt')
     def validate_prompt_safety(cls, v):
@@ -133,7 +133,7 @@ class LearnSchemaRequest(BaseModel):
     examples: List[Dict[str, Any]] = Field(
         ..., description="Example inputs and expected reasoning", min_length=3, max_length=20
     )
-    task_type: str = Field(..., description="Name for the new schema/task type", max_length=50, regex="^[a-zA-Z0-9_-]+$")
+    task_type: str = Field(..., description="Name for the new schema/task type", max_length=50, pattern="^[a-zA-Z0-9_-]+$")
     description: Optional[str] = Field(default=None, description="Description of the schema", max_length=1000)
     
     @validator('description')
@@ -405,7 +405,7 @@ async def get_current_user(
 async def verify_api_key(
     x_api_key: Optional[str] = Header(default=None), 
     authorization: Optional[str] = Header(default=None),
-    request: Request = None
+    request=None
 ) -> bool:
     """Legacy API key verification for backwards compatibility."""
     user, api_key = await get_current_user(x_api_key, authorization, request)
@@ -426,11 +426,14 @@ async def verify_api_key(
     return False
 
 
-async def require_permission(permission: 'Permission'):
-    """Dependency to require specific permission."""
+def require_permission(permission: 'Permission'):
+    """Dependency factory returning an async dependency callable.
+
+    FastAPI expects a callable (not a coroutine object) in Depends().
+    """
     async def check_permission(
         user_and_key: tuple = Depends(get_current_user),
-        request: Request = None
+        request=None,
     ):
         user, api_key = user_and_key
         
@@ -469,7 +472,7 @@ async def require_permission(permission: 'Permission'):
             )
         
         return user
-    
+
     return check_permission
 
 
