@@ -115,6 +115,7 @@ class ModelRouter:
         self.default_backend = os.getenv("ROUTER_DEFAULT_BACKEND", "ollama")
         self.rules: List[RoutingRule] = []
         self.retry_config = {"max_attempts": 2, "backoff": 0.8}
+        self.policy: Optional[Dict[str, Any]] = None
 
         self._load_policy()
 
@@ -130,6 +131,7 @@ class ModelRouter:
         try:
             with open(policy_path, "r") as f:
                 policy = yaml.safe_load(f)
+            self.policy = policy or {}
 
             # Load rules
             if "router" in policy and "rules" in policy["router"]:
@@ -186,6 +188,16 @@ class ModelRouter:
         # Default fallback
         logger.debug(f"No rule matched, using default backend: {self.default_backend}")
         return {"backend": self.default_backend, "model": None, "retry": self.retry_config}
+
+    # Backward compatible convenience used in tests
+    def route_request(self, task: str, context: Optional[Dict[str, Any]] = None) -> tuple[str, Optional[str]]:
+        """Return (backend, model) for a given task and context."""
+        context = context or {}
+        if "task_type" not in context:
+            # Try to enrich context minimally
+            context = {**context, "task_type": self.detect_task_type(task).value, "tokens": self.estimate_tokens(task)}
+        selection = self.select_backend(context)
+        return selection["backend"], selection.get("model")
 
     def estimate_tokens(self, text: str, multiplier: float = 1.3) -> int:
         """Estimate token count for text.

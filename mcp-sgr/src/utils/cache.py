@@ -130,11 +130,17 @@ class CacheManager:
             ttl = ttl or self.default_ttl
             expires_at = datetime.now(timezone.utc) + timedelta(seconds=ttl) if ttl > 0 else None
 
+            # Pydantic-aware JSON dump
+            try:
+                value_json = json.dumps(value, default=str)
+            except TypeError:
+                value_json = json.dumps(value)
+
             await self._cache_db.execute(
                 """INSERT OR REPLACE INTO cache_entries 
 				   (key, value, created_at, expires_at, hit_count) 
 				   VALUES (?, ?, ?, ?, 0)""",
-                (key, json.dumps(value), datetime.now(timezone.utc), expires_at),
+                (key, value_json, datetime.now(timezone.utc), expires_at),
             )
             await self._cache_db.commit()
 
@@ -202,11 +208,11 @@ class CacheManager:
                 (
                     trace_id,
                     tool_name,
-                    json.dumps(arguments),
-                    json.dumps(result),
+                    json.dumps(arguments, default=str),
+                    json.dumps(result, default=str),
                     datetime.now(timezone.utc),
                     duration_ms,
-                    json.dumps(metadata or {}),
+                    json.dumps(metadata or {}, default=str),
                 ),
             )
             await self._trace_db.commit()

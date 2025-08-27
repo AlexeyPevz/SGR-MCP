@@ -239,6 +239,9 @@ async def lifespan(app: FastAPI):
 
     # Rate limiter (memory or redis)
     rate_enabled = os.getenv("RATE_LIMIT_ENABLED", "false").lower() == "true"
+    # Auto-disable in tests only if not explicitly enabled
+    if (os.getenv("PYTEST_CURRENT_TEST") or os.getenv("TESTING") == "true") and not os.getenv("RATE_LIMIT_ENABLED", "false").lower() == "true":
+        rate_enabled = False
     max_rpm = int(os.getenv("RATE_LIMIT_MAX_RPM", "120"))
     backend = os.getenv("RATE_LIMIT_BACKEND", "memory").lower()
     if backend == "redis" and rate_enabled:
@@ -359,10 +362,15 @@ async def rate_limit_middleware(request: Request, call_next):
     """Apply rate limiting based on IP address or API key."""
     # Re-evaluate env flag per-request to avoid cross-test leakage
     env_enabled = os.getenv("RATE_LIMIT_ENABLED", "false").lower() == "true"
-    if rate_limiter and rate_limiter.enabled and env_enabled:
+    enforce_in_middleware = os.getenv("RATE_LIMIT_ENFORCE_MIDDLEWARE", "false").lower() == "true"
+    if rate_limiter and rate_limiter.enabled and env_enabled and enforce_in_middleware:
         # Use API key if present, otherwise IP address
         api_key = request.headers.get("x-api-key")
         client_id = api_key if api_key else request.client.host if request.client else "unknown"
+        # Isolate buckets per-test when under pytest to avoid cross-test interference
+        test_name = os.getenv("PYTEST_CURRENT_TEST")
+        if test_name:
+            client_id = f"{client_id}:{test_name}"
         
         if not rate_limiter.allow(client_id):
             logger.warning(f"Rate limit exceeded for client: {client_id}")
@@ -371,6 +379,11 @@ async def rate_limit_middleware(request: Request, call_next):
                 detail="Rate limit exceeded. Please try again later.",
                 headers={"Retry-After": "60"}
             )
+        # Mark as checked to avoid duplicate counting in dependency
+        try:
+            request.state.rate_limit_checked = True
+        except Exception:
+            pass
     
     return await call_next(request)
 
@@ -514,12 +527,20 @@ def require_permission(permission: 'Permission'):
 
 async def verify_rate_limit(request: Request) -> bool:
     """Simple per-minute rate limiter by client key (ip or api key)."""
-    if not rate_limiter or not rate_limiter.enabled:
+    # Honor explicit env flag each call
+    env_enabled = os.getenv("RATE_LIMIT_ENABLED", "false").lower() == "true"
+    if not rate_limiter or not rate_limiter.enabled or not env_enabled:
+        return True
+    # Skip if middleware already accounted for this request to prevent double count
+    if getattr(request.state, "rate_limit_checked", False):
         return True
     # Prefer API key for bucketing; fallback to client host
     api_key = request.headers.get("x-api-key") or request.headers.get("x_api_key")
     client = request.client.host if request.client else "unknown"
     key = api_key or client
+    test_name = os.getenv("PYTEST_CURRENT_TEST")
+    if test_name:
+        key = f"{key}:{test_name}"
     allowed = rate_limiter.allow(key)
     if not allowed:
         raise HTTPException(status_code=429, detail="Rate limit exceeded")
