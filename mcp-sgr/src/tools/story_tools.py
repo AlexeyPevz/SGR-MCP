@@ -3,7 +3,6 @@
 import json
 from typing import Any, Dict, List, Optional
 from openai import OpenAI
-from pydantic import BaseModel
 
 from ..schemas.story_generation import (
     StoryResponse, 
@@ -14,7 +13,7 @@ from ..utils.llm_client import LLMClient
 from ..utils.telemetry import TelemetryManager
 
 
-async def generate_story_outline(
+def generate_story_outline(
     prompt: str,
     constraints: Optional[Dict[str, Any]] = None,
     client: Optional[OpenAI] = None,
@@ -44,8 +43,9 @@ async def generate_story_outline(
     
     # Use provided client or create default
     if client is None:
-        llm_client = LLMClient()
-        client = llm_client.client
+        # For now, require client to be provided
+        # TODO: Integrate with LLMClient for multi-backend support
+        raise ValueError("OpenAI client must be provided")
     
     # Prepare the user message
     user_message = f"Story prompt: {prompt}"
@@ -124,7 +124,7 @@ async def generate_story_with_sgr(
         default_model = model_id or "gpt-4o-mini"
     
     # Generate story outline
-    story_outline = await generate_story_outline(
+    story_outline = generate_story_outline(
         prompt=prompt,
         constraints=constraints,
         client=client,

@@ -49,7 +49,7 @@ async def example_basic_story():
     start_time = datetime.now()
     
     try:
-        story = await generate_story_outline(
+        story = generate_story_outline(
             prompt=prompt,
             model_id=DEFAULT_MODEL,
             temperature=0.7,
@@ -152,7 +152,7 @@ async def example_multi_genre_story():
     start_time = datetime.now()
     
     try:
-        story = await generate_story_outline(
+        story = generate_story_outline(
             prompt=prompt,
             constraints=constraints,
             model_id=DEFAULT_MODEL,
